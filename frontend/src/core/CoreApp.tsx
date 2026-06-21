@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './core.css';
 import { createApiClient } from '../api/client';
+import { AuthPage } from '../pages/AuthPage';
+import { CommunitiesPage } from '../pages/CommunitiesPage';
+import { LandingPage } from '../pages/LandingPage';
 import { MemberView } from '../pages/MemberView';
 import { AdminDashboard } from '../pages/AdminDashboard';
 
@@ -16,7 +19,7 @@ export interface CoreAppConfig {
   authToken?: string;
 }
 
-type View = 'member' | 'admin';
+type View = 'landing' | 'communities' | 'auth' | 'member' | 'admin';
 
 /**
  * CoreApp — the self-contained heart of the product.
@@ -27,7 +30,7 @@ type View = 'member' | 'admin';
  * not control.
  */
 export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
-  const [view, setView] = useState<View>('member');
+  const [view, setView] = useState<View>(config.authToken ? 'member' : 'landing');
 
   // API client built from injected config (token-based, configurable URL).
   // Wired but unused until feature work lands.
@@ -37,21 +40,56 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
   }
   void api;
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [view]);
+
+  const navigate = (nextView: View): void => {
+    setView(nextView);
+  };
+
   return (
     <div className="cb-root">
       <nav className="cb-nav" aria-label="Primary">
         <div className="cb-brand-block">
-          <span className="cb-brand">Community Bridge</span>
-          <span className="cb-brand-subtitle">Member and admin workspace</span>
+          <span className="cb-brand">Nafr.</span>
+          <span className="cb-brand-subtitle">Community feedback platform</span>
         </div>
 
-        <div className="cb-nav-actions" role="tablist" aria-label="Workspace view">
+        <div className="cb-nav-actions" role="tablist" aria-label="Primary sections">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'landing'}
+            className={view === 'landing' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+            onClick={() => navigate('landing')}
+          >
+            Home
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'communities'}
+            className={view === 'communities' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+            onClick={() => navigate('communities')}
+          >
+            Communities
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={view === 'auth'}
+            className={view === 'auth' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+            onClick={() => navigate('auth')}
+          >
+            Join
+          </button>
           <button
             type="button"
             role="tab"
             aria-selected={view === 'member'}
             className={view === 'member' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => setView('member')}
+            onClick={() => navigate('member')}
           >
             Member
           </button>
@@ -60,7 +98,7 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
             role="tab"
             aria-selected={view === 'admin'}
             className={view === 'admin' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => setView('admin')}
+            onClick={() => navigate('admin')}
           >
             Admin
           </button>
@@ -68,28 +106,20 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
       </nav>
 
       <main className="cb-content">
-        <section className="cb-hero">
-          <div>
-            <p className="cb-eyebrow">Live preview</p>
-            <h1>Designed for community feedback, moderation, and follow-through.</h1>
-            <p className="cb-hero-copy">
-              The same core surface can run as a standalone site or inside an embed.
-              The current API base is {config.apiBaseUrl}.
-            </p>
-          </div>
+        {view === 'landing' ? (
+          <LandingPage
+            apiBaseUrl={config.apiBaseUrl}
+            onNavigate={navigate}
+          />
+        ) : null}
 
-          <div className="cb-hero-panel">
-            <span className="cb-status">Connected</span>
-            <strong>{view === 'member' ? 'Member workspace' : 'Admin workspace'}</strong>
-            <p>
-              {view === 'member'
-                ? 'Suggestions, incident reporting, and event voting are arranged for fast member input.'
-                : 'Queue triage, moderation, and announcements are organised for quick action.'}
-            </p>
-          </div>
-        </section>
+        {view === 'communities' ? <CommunitiesPage onNavigate={navigate} /> : null}
 
-        {view === 'member' ? <MemberView /> : <AdminDashboard />}
+        {view === 'auth' ? <AuthPage onNavigate={navigate} /> : null}
+
+        {view === 'member' ? <MemberView onNavigate={navigate} /> : null}
+
+        {view === 'admin' ? <AdminDashboard onNavigate={navigate} /> : null}
       </main>
     </div>
   );
