@@ -1,11 +1,22 @@
+import './communities.css';
+
 type CommunitiesPageProps = {
   onOpenCommunity: (name: string) => void;
 };
 
-const myCommunities = [
-  { name: 'East London Mosque', role: 'Admin · Member', blurb: 'Whitechapel, London E1' },
-  { name: 'South Kensington Youth Football', role: 'Member', blurb: 'Youth sports club, SW7' },
-  { name: 'East Ham Community Centre', role: 'Member', blurb: 'Community hub, E6' },
+type Community = {
+  name: string;
+  initials: string;
+  role: 'Admin' | 'Member';
+  type: string;
+  location: string;
+  members: number;
+};
+
+const myCommunities: Community[] = [
+  { name: 'East London Mosque', initials: 'EL', role: 'Admin', type: 'Mosque', location: 'Whitechapel, London E1', members: 412 },
+  { name: 'South Kensington Youth Football', initials: 'SK', role: 'Member', type: 'Sports club', location: 'Kensington, London SW7', members: 86 },
+  { name: 'East Ham Community Centre', initials: 'EH', role: 'Member', type: 'Community centre', location: 'East Ham, London E6', members: 240 },
 ];
 
 export function CommunitiesPage({ onOpenCommunity }: CommunitiesPageProps): JSX.Element {
@@ -15,27 +26,45 @@ export function CommunitiesPage({ onOpenCommunity }: CommunitiesPageProps): JSX.
         <div>
           <p className="cb-eyebrow">My communities</p>
           <h2 id="communities-title">Pick up where your community left off.</h2>
+          <p className="cb-muted cb-communities-count">{myCommunities.length} communities</p>
         </div>
       </header>
 
-      <div className="cb-community-grid">
+      <div className="cb-communities-grid">
         {myCommunities.map((community) => (
           <button
             key={community.name}
             type="button"
-            className="cb-community-card"
+            className="cb-comm-card"
             onClick={() => onOpenCommunity(community.name)}
           >
-            <div className="cb-community-banner">
-              <div className="cb-community-badge">{community.role}</div>
+            <div className="cb-comm-card-head">
+              <span className="cb-comm-monogram" aria-hidden="true">
+                {community.initials}
+              </span>
+              <span className={`cb-role-pill cb-role-pill--${community.role.toLowerCase()}`}>
+                {community.role}
+              </span>
             </div>
-            <div className="cb-card-stack">
-              <div>
-                <span className="cb-card-kicker">{community.blurb}</span>
-                <h3>{community.name}</h3>
-                <p className="cb-muted">Structured feedback, event voting, and updates in one place.</p>
-              </div>
-              <span className="cb-link-button">Open community →</span>
+
+            <div className="cb-comm-card-body">
+              <span className="cb-comm-type">{community.type}</span>
+              <h3 className="cb-comm-name">{community.name}</h3>
+              <p className="cb-comm-loc">
+                <i className="ti ti-map-pin" aria-hidden="true" />
+                {community.location}
+              </p>
+            </div>
+
+            <div className="cb-comm-card-foot">
+              <span className="cb-comm-members">
+                <i className="ti ti-users" aria-hidden="true" />
+                {community.members} members
+              </span>
+              <span className="cb-comm-open">
+                Open
+                <i className="ti ti-arrow-right" aria-hidden="true" />
+              </span>
             </div>
           </button>
         ))}

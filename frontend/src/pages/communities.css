@@ -1,0 +1,150 @@
+/*
+ * "My communities" — refined selection cards. Scoped under .cb-root (embed-safe).
+ */
+
+.cb-root .cb-communities-count {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.cb-root .cb-communities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.cb-root .cb-comm-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  padding: 1.4rem;
+  border: 1px solid rgba(16, 33, 29, 0.09);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 34px rgba(16, 33, 29, 0.06);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.cb-root .cb-comm-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(201, 162, 75, 0.5);
+  box-shadow: 0 22px 46px rgba(16, 33, 29, 0.12);
+}
+
+.cb-root .cb-comm-card:focus-visible {
+  outline: 2px solid #c9a24b;
+  outline-offset: 3px;
+}
+
+.cb-root .cb-comm-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cb-root .cb-comm-monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: linear-gradient(140deg, #0d2620, #126e7d);
+  color: #e3c878;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.cb-root .cb-role-pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 0.28rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+
+.cb-root .cb-role-pill--admin {
+  background: rgba(201, 162, 75, 0.16);
+  color: #8d6a20;
+  border-color: rgba(201, 162, 75, 0.4);
+}
+
+.cb-root .cb-role-pill--member {
+  background: rgba(13, 109, 90, 0.12);
+  color: #0d6d5a;
+}
+
+.cb-root .cb-comm-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cb-root .cb-comm-type {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #0d6d5a;
+}
+
+.cb-root .cb-comm-name {
+  margin: 0;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #10211d;
+}
+
+.cb-root .cb-comm-loc {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0;
+  font-size: 0.88rem;
+  color: #5b6a64;
+}
+
+.cb-root .cb-comm-loc i,
+.cb-root .cb-comm-members i {
+  font-size: 1rem;
+  color: #8d9a93;
+}
+
+.cb-root .cb-comm-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(16, 33, 29, 0.08);
+}
+
+.cb-root .cb-comm-members {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #5b6a64;
+}
+
+.cb-root .cb-comm-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #8d6a20;
+  transition: gap 160ms ease;
+}
+
+.cb-root .cb-comm-card:hover .cb-comm-open {
+  gap: 0.6rem;
+}

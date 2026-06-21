@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './community.css';
 
 type CommunityPageProps = {
@@ -56,9 +56,27 @@ const seedUpdates = (): Update[] => [
 /** Lightweight dropdown: a trigger button that reveals a small menu of actions. */
 function PostMenu({ label, options }: { label: string; options: { label: string; icon: string; onSelect: () => void }[] }): JSX.Element {
   const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointer = (event: MouseEvent): void => {
+      if (ref.current && !ref.current.contains(event.target as Node)) setOpen(false);
+    };
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onPointer);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointer);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
   return (
-    <div className="cb-post-menu">
-      <button type="button" className="cb-button cb-button--primary" onClick={() => setOpen((v) => !v)}>
+    <div className="cb-post-menu" ref={ref}>
+      <button type="button" className="cb-button cb-button--primary" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         <i className="ti ti-plus" aria-hidden="true" /> {label}
         <i className={open ? 'ti ti-chevron-up' : 'ti ti-chevron-down'} aria-hidden="true" />
       </button>

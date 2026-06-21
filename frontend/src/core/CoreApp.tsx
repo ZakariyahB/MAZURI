@@ -60,54 +60,65 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
     setView('community');
   };
 
-  return (
-    <div className={isLanding ? 'cb-root cb-root--flush' : 'cb-root'}>
-      {/* The premium landing owns its own transparent header (see LandingPage);
-          inside the app a slim chrome bar takes over. */}
-      {!isLanding ? (
-        <nav className="cb-nav" aria-label="Primary">
-          <div className="cb-brand-block">
-            <button type="button" className="cb-brand" onClick={() => setView('landing')}>
-              Nafr.
-            </button>
-            <span className="cb-brand-subtitle">Community feedback platform</span>
-          </div>
+  const chrome = !isLanding ? (
+    <nav className="cb-nav" aria-label="Primary">
+      <div className="cb-brand-block">
+        <button type="button" className="cb-brand" onClick={() => setView('landing')}>
+          Nafr.
+        </button>
+        <span className="cb-brand-subtitle">Community feedback platform</span>
+      </div>
 
-          <div className="cb-nav-actions">
-            {view !== 'auth' ? (
-              <button
-                type="button"
-                className={view === 'communities' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-                onClick={() => setView('communities')}
-              >
-                My communities
-              </button>
-            ) : null}
-            <button type="button" className="cb-tab" onClick={() => setView('landing')}>
-              {view === 'auth' ? 'Back' : 'Sign out'}
-            </button>
-          </div>
-        </nav>
+      {view !== 'auth' ? (
+        <div className="cb-nav-actions">
+          <button
+            type="button"
+            className={view === 'communities' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+            onClick={() => setView('communities')}
+          >
+            My communities
+          </button>
+          <button type="button" className="cb-tab" onClick={() => setView('landing')}>
+            Sign out
+          </button>
+        </div>
+      ) : null}
+    </nav>
+  ) : null;
+
+  const main = (
+    <main className={isLanding ? 'cb-content cb-content--flush' : 'cb-content'}>
+      {view === 'landing' ? <LandingPage onAuth={openAuth} /> : null}
+
+      {view === 'auth' ? (
+        <AuthPage
+          mode={authMode}
+          onModeChange={setAuthMode}
+          onAuthenticated={() => setView('communities')}
+          onBack={() => setView('landing')}
+        />
       ) : null}
 
-      <main className={isLanding ? 'cb-content cb-content--flush' : 'cb-content'}>
-        {view === 'landing' ? <LandingPage onAuth={openAuth} /> : null}
+      {view === 'communities' ? <CommunitiesPage onOpenCommunity={openCommunity} /> : null}
 
-        {view === 'auth' ? (
-          <AuthPage
-            mode={authMode}
-            onModeChange={setAuthMode}
-            onAuthenticated={() => setView('communities')}
-            onBack={() => setView('landing')}
-          />
-        ) : null}
+      {view === 'community' && community ? (
+        <CommunityPage key={community} communityName={community} onBack={() => setView('communities')} />
+      ) : null}
+    </main>
+  );
 
-        {view === 'communities' ? <CommunitiesPage onOpenCommunity={openCommunity} /> : null}
-
-        {view === 'community' && community ? (
-          <CommunityPage key={community} communityName={community} onBack={() => setView('communities')} />
-        ) : null}
-      </main>
+  // The premium landing is full-bleed; every in-app view sits in a centered,
+  // max-width shell so content doesn't sprawl on wide screens.
+  return (
+    <div className={isLanding ? 'cb-root cb-root--flush' : 'cb-root'}>
+      {isLanding ? (
+        main
+      ) : (
+        <div className="cb-shell">
+          {chrome}
+          {main}
+        </div>
+      )}
     </div>
   );
 }
