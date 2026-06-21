@@ -25,9 +25,6 @@ export function LandingPage({ onAuth }: LandingPageProps): JSX.Element {
       <section className="cb-hero" aria-labelledby="landing-title">
         <header className="cb-landing-header">
           <span className="cb-landing-brand">nafr.</span>
-          <button type="button" className="cb-signin-link" onClick={() => onAuth('login')}>
-            Log in
-          </button>
         </header>
 
         <div className="cb-hero-inner">
@@ -50,6 +47,9 @@ export function LandingPage({ onAuth }: LandingPageProps): JSX.Element {
             <button type="button" className="cb-pill-btn cb-pill-btn--lg" onClick={() => onAuth('signup')}>
               <i className="ti ti-user-plus" aria-hidden="true" />
               Sign up
+            </button>
+            <button type="button" className="cb-signin-link" onClick={() => onAuth('login')}>
+              Log in
             </button>
           </div>
 
