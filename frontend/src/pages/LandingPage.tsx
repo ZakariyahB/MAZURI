@@ -1,4 +1,4 @@
-import { Card } from '../components/Card';
+import './landing.css';
 
 type AppView = 'landing' | 'communities' | 'auth' | 'member' | 'admin';
 
@@ -7,92 +7,94 @@ type LandingPageProps = {
   onNavigate: (view: AppView) => void;
 };
 
-const highlights = [
-  { title: 'Suggestions up', body: 'Public ideas get upvoted so the strongest priorities rise first.' },
-  { title: 'Reports private', body: 'Sensitive issues stay admin-only and are triaged by severity.' },
-  { title: 'Announcements down', body: 'Admins close the loop with visible updates when work is done.' },
+const stats = [
+  { num: '24', label: 'communities on Nafr.' },
+  { num: '1,840', label: 'members across the UK' },
+  { num: '73%', label: 'avg. issues addressed in 30 days' },
 ];
 
-export function LandingPage({ apiBaseUrl, onNavigate }: LandingPageProps): JSX.Element {
+// Placeholder step cards — copy to be filled in. Kept as styled stubs so the
+// "How Nafr. works" section reads as a finished three-step layout.
+const steps = [
+  { n: '01', title: 'Listen', body: 'Members raise suggestions and private reports in one structured place.' },
+  { n: '02', title: 'Act', body: 'Admins triage by priority and severity, then resolve what matters most.' },
+  { n: '03', title: 'Show', body: 'Visible announcements close the loop so action is always traceable.' },
+];
+
+export function LandingPage({ onNavigate }: LandingPageProps): JSX.Element {
   return (
-    <section className="cb-landing" aria-labelledby="landing-title">
-      <section className="cb-hero">
-        <div>
-          <p className="cb-eyebrow">Community feedback platform</p>
-          <h1 id="landing-title">Give communities a structured way to be heard.</h1>
-          <p className="cb-hero-copy">
-            Nafr. keeps suggestions public, reports private, and announcements visible so action is traceable.
-            Standalone mode runs at {apiBaseUrl}.
+    <div className="cb-landing">
+      {/* Hero — dark, full-bleed, with its own transparent header. */}
+      <section className="cb-hero" aria-labelledby="landing-title">
+        <header className="cb-landing-header">
+          <button type="button" className="cb-landing-brand" onClick={() => onNavigate('landing')}>
+            Nafr.
+          </button>
+          <nav className="cb-landing-nav" aria-label="Landing">
+            <button type="button" className="cb-signin-link" onClick={() => onNavigate('auth')}>
+              Sign in
+            </button>
+            <button type="button" className="cb-pill-btn" onClick={() => onNavigate('communities')}>
+              Find your community
+            </button>
+          </nav>
+        </header>
+
+        <div className="cb-hero-inner">
+          <span className="cb-hero-badge">
+            <i className="ti ti-users" aria-hidden="true" />
+            Community feedback, reimagined
+          </span>
+
+          <h1 id="landing-title" className="cb-hero-title">
+            <span className="cb-hero-line-1">Every voice heard.</span>
+            <span className="cb-hero-line-2">Every action visible.</span>
+          </h1>
+
+          <p className="cb-hero-sub">
+            Nafr. gives mosques, schools, and community centres a structured way to listen to their
+            members — and a clear way to show they&rsquo;ve acted.
           </p>
 
-          <div className="cb-action-row cb-action-row--hero">
-            <button type="button" className="cb-button cb-button--primary" onClick={() => onNavigate('communities')}>
-              Explore communities
+          <div className="cb-hero-cta">
+            <button type="button" className="cb-pill-btn cb-pill-btn--lg" onClick={() => onNavigate('communities')}>
+              <i className="ti ti-search" aria-hidden="true" />
+              Find your community
             </button>
-            <button type="button" className="cb-button cb-button--secondary" onClick={() => onNavigate('auth')}>
-              Join the platform
+            <button type="button" className="cb-ghost-btn" onClick={() => onNavigate('auth')}>
+              <i className="ti ti-login-2" aria-hidden="true" />
+              Sign in
             </button>
           </div>
-        </div>
 
-        <div className="cb-hero-panel">
-          <span className="cb-status">Standalone site</span>
-          <strong>Built for embed first, but ready as a hosted website.</strong>
-          <p>
-            The same core design can live inside a community website or operate as the public product.
-          </p>
-          <button type="button" className="cb-link-button cb-link-button--block" onClick={() => onNavigate('member')}>
-            See the member experience
-          </button>
+          <dl className="cb-hero-stats">
+            {stats.map((stat) => (
+              <div className="cb-hero-stat" key={stat.label}>
+                <dt className="cb-hero-stat-num">{stat.num}</dt>
+                <dd className="cb-hero-stat-label">{stat.label}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
-      <div className="cb-grid cb-grid--three cb-grid--feature">
-        {highlights.map((item) => (
-          <Card key={item.title}>
-            <div className="cb-card-stack">
-              <span className="cb-card-kicker">Core flow</span>
-              <h3>{item.title}</h3>
-              <p className="cb-muted">{item.body}</p>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {/* Intro — cream, "How Nafr. works". */}
+      <section className="cb-howitworks" aria-labelledby="how-title">
+        <h2 id="how-title" className="cb-how-title">
+          How Nafr. works
+        </h2>
+        <p className="cb-how-sub">Three steps from problem to resolution</p>
 
-      <div className="cb-grid cb-grid--two">
-        <Card>
-          <div className="cb-card-stack">
-            <span className="cb-card-kicker">What it solves</span>
-            <h3>One clean loop from feedback to action</h3>
-            <p className="cb-muted">
-              Suggestions and reports arrive separately, admins triage in one place, and the public sees what changed.
-            </p>
-            <div className="cb-action-row">
-              <button type="button" className="cb-button cb-button--ghost" onClick={() => onNavigate('communities')}>
-                View communities
-              </button>
-              <button type="button" className="cb-button cb-button--ghost" onClick={() => onNavigate('admin')}>
-                Open admin queue
-              </button>
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="cb-card-stack">
-            <span className="cb-card-kicker">Why now</span>
-            <h3>Cheap AI makes community triage practical</h3>
-            <p className="cb-muted">
-              The user picks the category; the model groups similar reports and surfaces the patterns.
-            </p>
-            <div className="cb-action-row">
-              <button type="button" className="cb-button cb-button--primary" onClick={() => onNavigate('auth')}>
-                Start a pilot
-              </button>
-            </div>
-          </div>
-        </Card>
-      </div>
-    </section>
+        <div className="cb-how-grid">
+          {steps.map((step) => (
+            <article className="cb-how-card" key={step.n}>
+              <span className="cb-how-num">{step.n}</span>
+              <h3 className="cb-how-card-title">{step.title}</h3>
+              <p className="cb-how-card-body">{step.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

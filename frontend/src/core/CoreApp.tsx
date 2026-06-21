@@ -48,64 +48,63 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
     setView(nextView);
   };
 
+  const isLanding = view === 'landing';
+
   return (
-    <div className="cb-root">
-      <nav className="cb-nav" aria-label="Primary">
-        <div className="cb-brand-block">
-          <span className="cb-brand">Nafr.</span>
-          <span className="cb-brand-subtitle">Community feedback platform</span>
-        </div>
+    <div className={isLanding ? 'cb-root cb-root--flush' : 'cb-root'}>
+      {/* The premium landing owns its own transparent header (see LandingPage),
+          so the app's tab-nav is shown only once the visitor is inside the app. */}
+      {!isLanding ? (
+        <nav className="cb-nav" aria-label="Primary">
+          <div className="cb-brand-block">
+            <button type="button" className="cb-brand" onClick={() => navigate('landing')}>
+              Nafr.
+            </button>
+            <span className="cb-brand-subtitle">Community feedback platform</span>
+          </div>
 
-        <div className="cb-nav-actions" role="tablist" aria-label="Primary sections">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'landing'}
-            className={view === 'landing' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => navigate('landing')}
-          >
-            Home
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'communities'}
-            className={view === 'communities' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => navigate('communities')}
-          >
-            Communities
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'auth'}
-            className={view === 'auth' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => navigate('auth')}
-          >
-            Join
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'member'}
-            className={view === 'member' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => navigate('member')}
-          >
-            Member
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === 'admin'}
-            className={view === 'admin' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-            onClick={() => navigate('admin')}
-          >
-            Admin
-          </button>
-        </div>
-      </nav>
+          <div className="cb-nav-actions" role="tablist" aria-label="Primary sections">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'communities'}
+              className={view === 'communities' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+              onClick={() => navigate('communities')}
+            >
+              Communities
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'auth'}
+              className={view === 'auth' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+              onClick={() => navigate('auth')}
+            >
+              Join
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'member'}
+              className={view === 'member' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+              onClick={() => navigate('member')}
+            >
+              Member
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={view === 'admin'}
+              className={view === 'admin' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+              onClick={() => navigate('admin')}
+            >
+              Admin
+            </button>
+          </div>
+        </nav>
+      ) : null}
 
-      <main className="cb-content">
+      <main className={isLanding ? 'cb-content cb-content--flush' : 'cb-content'}>
         {view === 'landing' ? (
           <LandingPage
             apiBaseUrl={config.apiBaseUrl}

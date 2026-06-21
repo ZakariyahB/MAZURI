@@ -1,0 +1,350 @@
+/*
+ * Landing redesign — premium dark hero + cream intro.
+ *
+ * Scoped under .cb-root (like core.css) so it stays embed-safe. The hero is
+ * full-bleed: CoreApp adds .cb-root--flush / .cb-content--flush on the landing
+ * view to drop the app chrome's padding so these sections reach the edges.
+ */
+
+.cb-root--flush {
+  padding: 0;
+  background: #0d2620;
+}
+
+.cb-content--flush {
+  padding-top: 0;
+  gap: 0;
+}
+
+.cb-landing {
+  --nafr-deep: #0d2620;
+  --nafr-deep-soft: #123127;
+  --nafr-gold: #c9a84c;
+  --nafr-gold-soft: #e3c878;
+  --nafr-cream: #f4f0e6;
+  --nafr-muted: #8fa79b;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Hero shell ─────────────────────────────────────────────── */
+.cb-landing .cb-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(201, 168, 76, 0.16), transparent 55%),
+    radial-gradient(ellipse at 50% 120%, rgba(18, 49, 39, 0.9), transparent 60%),
+    var(--nafr-deep);
+}
+
+/* Faint gold Islamic geometric lattice (eight-point stars), tiled low-opacity. */
+.cb-landing .cb-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='90'%20height='90'%20viewBox='0%200%2090%2090'%3E%3Cg%20fill='none'%20stroke='%23c9a84c'%20stroke-width='1'%3E%3Crect%20x='25'%20y='25'%20width='40'%20height='40'/%3E%3Crect%20x='25'%20y='25'%20width='40'%20height='40'%20transform='rotate(45%2045%2045)'/%3E%3Ccircle%20cx='45'%20cy='45'%20r='6'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 90px 90px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* ── Transparent header over the hero ───────────────────────── */
+.cb-landing .cb-landing-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.6rem clamp(1.25rem, 5vw, 4rem);
+}
+
+.cb-landing .cb-landing-brand {
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--nafr-gold);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cb-landing .cb-landing-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.cb-landing .cb-signin-link {
+  background: none;
+  border: 0;
+  color: rgba(244, 240, 230, 0.82);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.3rem 0.2rem;
+  transition: color 140ms ease;
+}
+
+.cb-landing .cb-signin-link:hover {
+  color: var(--nafr-cream);
+}
+
+/* ── Solid gold pill button (shared) ────────────────────────── */
+.cb-landing .cb-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1.4rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--nafr-deep);
+  background: var(--nafr-gold);
+  cursor: pointer;
+  transition: background 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.cb-landing .cb-pill-btn:hover {
+  background: var(--nafr-gold-soft);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(201, 168, 76, 0.28);
+}
+
+.cb-landing .cb-pill-btn--lg {
+  padding: 0.95rem 1.9rem;
+  font-size: 1.02rem;
+}
+
+/* Ghost / outlined CTA */
+.cb-landing .cb-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  border-radius: 999px;
+  padding: 0.95rem 1.9rem;
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.02rem;
+  color: var(--nafr-cream);
+  background: rgba(244, 240, 230, 0.03);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.cb-landing .cb-ghost-btn:hover {
+  border-color: var(--nafr-gold);
+  background: rgba(201, 168, 76, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ── Hero body ──────────────────────────────────────────────── */
+.cb-landing .cb-hero-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 820px;
+  margin: 0 auto;
+  padding: clamp(2.5rem, 7vw, 5.5rem) 1.5rem clamp(3.5rem, 8vw, 6rem);
+  text-align: center;
+}
+
+.cb-landing .cb-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 999px;
+  padding: 0.4rem 1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--nafr-gold-soft);
+  background: rgba(201, 168, 76, 0.06);
+}
+
+.cb-landing .cb-hero-badge i {
+  font-size: 1rem;
+}
+
+.cb-landing .cb-hero-title {
+  margin: 1.6rem 0 0;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(2.4rem, 6vw, 4.2rem);
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.cb-landing .cb-hero-title span {
+  display: block;
+}
+
+.cb-landing .cb-hero-line-1 {
+  color: var(--nafr-cream);
+}
+
+.cb-landing .cb-hero-line-2 {
+  color: var(--nafr-gold);
+}
+
+.cb-landing .cb-hero-sub {
+  max-width: 38rem;
+  margin: 1.4rem auto 0;
+  color: var(--nafr-muted);
+  font-size: clamp(1rem, 2.2vw, 1.15rem);
+  line-height: 1.6;
+}
+
+.cb-landing .cb-hero-cta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 2.2rem;
+}
+
+/* ── Stats row with thin vertical dividers ──────────────────── */
+.cb-landing .cb-hero-stats {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  flex-wrap: wrap;
+  margin: 3.2rem 0 0;
+}
+
+.cb-landing .cb-hero-stat {
+  padding: 0.2rem clamp(1.4rem, 4vw, 2.6rem);
+  border-left: 1px solid rgba(201, 168, 76, 0.22);
+}
+
+.cb-landing .cb-hero-stat:first-child {
+  border-left: 0;
+}
+
+.cb-landing .cb-hero-stat-num {
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  line-height: 1.1;
+  color: var(--nafr-gold);
+}
+
+.cb-landing .cb-hero-stat-label {
+  margin: 0.35rem 0 0;
+  max-width: 12rem;
+  color: var(--nafr-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+/* ── "How Nafr. works" — cream intro ────────────────────────── */
+.cb-landing .cb-howitworks {
+  background: var(--nafr-cream);
+  text-align: center;
+  padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 5vw, 4rem) clamp(3.5rem, 8vw, 6rem);
+}
+
+.cb-landing .cb-how-title {
+  margin: 0;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(1.9rem, 4vw, 2.8rem);
+  color: var(--nafr-deep);
+}
+
+.cb-landing .cb-how-sub {
+  margin: 0.6rem 0 0;
+  color: #6b7d74;
+  font-size: 1.05rem;
+}
+
+.cb-landing .cb-how-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+  max-width: 980px;
+  margin: 2.6rem auto 0;
+  text-align: left;
+}
+
+.cb-landing .cb-how-card {
+  background: #fffdf8;
+  border: 1px solid rgba(13, 38, 32, 0.08);
+  border-radius: 18px;
+  padding: 1.6rem 1.5rem;
+  box-shadow: 0 14px 34px rgba(13, 38, 32, 0.06);
+}
+
+.cb-landing .cb-how-num {
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--nafr-gold);
+}
+
+.cb-landing .cb-how-card-title {
+  margin: 0.5rem 0 0.4rem;
+  font-family: 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--nafr-deep);
+}
+
+.cb-landing .cb-how-card-body {
+  margin: 0;
+  color: #6b7d74;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .cb-landing .cb-how-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .cb-landing .cb-landing-header {
+    padding: 1.2rem 1.25rem;
+  }
+
+  .cb-landing .cb-landing-nav {
+    gap: 0.9rem;
+  }
+
+  .cb-landing .cb-hero-cta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cb-landing .cb-hero-cta .cb-pill-btn,
+  .cb-landing .cb-hero-cta .cb-ghost-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cb-landing .cb-hero-stats {
+    flex-direction: column;
+    gap: 1.6rem;
+  }
+
+  .cb-landing .cb-hero-stat {
+    border-left: 0;
+    border-top: 1px solid rgba(201, 168, 76, 0.22);
+    padding: 1.6rem 0 0;
+  }
+
+  .cb-landing .cb-hero-stat:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .cb-landing .cb-hero-stat-label {
+    max-width: none;
+  }
+}
