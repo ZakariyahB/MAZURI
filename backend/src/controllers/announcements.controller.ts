@@ -1,14 +1,20 @@
 import type { Request, Response } from 'express';
+import { announcementModel } from '../models/announcement.model';
+import { str } from '../utils/validation';
 
-/**
- * Announcements controller — stubs only. Admin posts that close the loop when a
- * suggestion is implemented or a report resolved. No logic yet.
- */
 export const announcementsController = {
-  list(_req: Request, res: Response): void {
-    res.status(501).json({ error: 'Not implemented' });
+  /** Admin posts an announcement (closes the loop on suggestions/reports). */
+  async create(req: Request, res: Response): Promise<void> {
+    const body = str(req.body?.body, 'body');
+    const announcement = await announcementModel.create(
+      req.params.communityId,
+      req.user!.userId,
+      body,
+    );
+    res.status(201).json({ announcement });
   },
-  create(_req: Request, res: Response): void {
-    res.status(501).json({ error: 'Not implemented' });
+
+  async list(req: Request, res: Response): Promise<void> {
+    res.json({ announcements: await announcementModel.listByCommunity(req.params.communityId) });
   },
 };

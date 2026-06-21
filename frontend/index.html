@@ -3,12 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Community Bridge</title>
+    <title>Nafr. — Community Feedback</title>
+
+    <!-- Type: Cormorant Garamond (serif display) + Inter (UI). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Tabler icons (webfont). Used as <i class="ti ti-name"></i>. -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css"
+    />
   </head>
   <body>
-    <!-- Named mount node (not a generic #root): the core app mounts into a
-         specific element it's handed, so the same code works when an embed shell
-         provides its own container on a host page. -->
+    <!-- Named mount node so the core app mounts into a container it's handed
+         (standalone today, an embed shell later). -->
     <div id="community-bridge-root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -31,16 +31,25 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
 
   // API client built from injected config (token-based, configurable URL).
   // Wired but unused until feature work lands.
-  const api = createApiClient({ baseUrl: config.apiBaseUrl, token: config.authToken });
+  const api = createApiClient(config.apiBaseUrl);
+  if (config.authToken) {
+    api.setToken(config.authToken);
+  }
   void api;
 
   return (
     <div className="cb-root">
-      <nav className="cb-nav">
-        <span className="cb-brand">Community Bridge</span>
-        <div className="cb-nav-actions">
+      <nav className="cb-nav" aria-label="Primary">
+        <div className="cb-brand-block">
+          <span className="cb-brand">Community Bridge</span>
+          <span className="cb-brand-subtitle">Member and admin workspace</span>
+        </div>
+
+        <div className="cb-nav-actions" role="tablist" aria-label="Workspace view">
           <button
             type="button"
+            role="tab"
+            aria-selected={view === 'member'}
             className={view === 'member' ? 'cb-tab cb-tab--active' : 'cb-tab'}
             onClick={() => setView('member')}
           >
@@ -48,6 +57,8 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={view === 'admin'}
             className={view === 'admin' ? 'cb-tab cb-tab--active' : 'cb-tab'}
             onClick={() => setView('admin')}
           >
@@ -57,6 +68,27 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
       </nav>
 
       <main className="cb-content">
+        <section className="cb-hero">
+          <div>
+            <p className="cb-eyebrow">Live preview</p>
+            <h1>Designed for community feedback, moderation, and follow-through.</h1>
+            <p className="cb-hero-copy">
+              The same core surface can run as a standalone site or inside an embed.
+              The current API base is {config.apiBaseUrl}.
+            </p>
+          </div>
+
+          <div className="cb-hero-panel">
+            <span className="cb-status">Connected</span>
+            <strong>{view === 'member' ? 'Member workspace' : 'Admin workspace'}</strong>
+            <p>
+              {view === 'member'
+                ? 'Suggestions, incident reporting, and event voting are arranged for fast member input.'
+                : 'Queue triage, moderation, and announcements are organised for quick action.'}
+            </p>
+          </div>
+        </section>
+
         {view === 'member' ? <MemberView /> : <AdminDashboard />}
       </main>
     </div>

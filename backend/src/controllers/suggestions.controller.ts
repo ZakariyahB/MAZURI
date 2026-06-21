@@ -1,17 +1,64 @@
 import type { Request, Response } from 'express';
+import { withTransaction } from '../config/db';
+import { suggestionModel } from '../models/suggestion.model';
+import { str, oneOf } from '../utils/validation';
+import { conflict, notFound } from '../utils/errors';
 
-/**
- * Suggestions controller — stubs only. Public, upvotable member posts.
- * No logic yet.
- */
+/** Loads a suggestion and asserts it belongs to the route's community. */
+async function loadInCommunity(suggestionId: string, communityId: string) {
+  const suggestion = await suggestionModel.findById(suggestionId);
+  if (!suggestion || suggestion.community_id !== communityId) {
+    throw notFound('Suggestion not found');
+  }
+  return suggestion;
+}
+
 export const suggestionsController = {
-  list(_req: Request, res: Response): void {
-    res.status(501).json({ error: 'Not implemented' });
+  async create(req: Request, res: Response): Promise<void> {
+    const body = str(req.body?.body, 'body');
+    const suggestion = await suggestionModel.create(
+      req.params.communityId,
+      req.user!.userId,
+      body,
+    );
+    res.status(201).json({ suggestion });
   },
-  create(_req: Request, res: Response): void {
-    res.status(501).json({ error: 'Not implemented' });
+
+  /** Public feed: approved suggestions, most upvoted first. */
+  async list(req: Request, res: Response): Promise<void> {
+    res.json({ suggestions: await suggestionModel.listApproved(req.params.communityId) });
   },
-  upvote(_req: Request, res: Response): void {
-    res.status(501).json({ error: 'Not implemented' });
+
+  /** Admin moderation queue: pending suggestions. */
+  async queue(req: Request, res: Response): Promise<void> {
+    res.json({ suggestions: await suggestionModel.listPending(req.params.communityId) });
+  },
+
+  async upvote(req: Request, res: Response): Promise<void> {
+    const { communityId, suggestionId } = req.params;
+    await loadInCommunity(suggestionId, communityId);
+
+    try {
+      const updated = await withTransaction((client) =>
+        suggestionModel.addVote(suggestionId, req.user!.userId, client),
+      );
+      res.json({ suggestion: updated });
+    } catch (err) {
+      if ((err as { code?: string }).code === '23505') {
+        throw conflict('You have already upvoted this suggestion');
+      }
+      throw err;
+    }
+  },
+
+  /** Admin approve/reject from the moderation queue. */
+  async moderate(req: Request, res: Response): Promise<void> {
+    const { communityId, suggestionId } = req.params;
+    const decision = oneOf(req.body?.decision, 'decision', ['approve', 'reject'] as const);
+    await loadInCommunity(suggestionId, communityId);
+
+    const status = decision === 'approve' ? 'approved' : 'rejected';
+    const updated = await suggestionModel.setStatus(suggestionId, status);
+    res.json({ suggestion: updated });
   },
 };

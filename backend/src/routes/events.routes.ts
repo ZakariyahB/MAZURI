@@ -1,11 +1,14 @@
 import { Router } from 'express';
 import { eventsController } from '../controllers/events.controller';
+import { requireAdmin, requireMember } from '../middleware/membership.middleware';
+import { asyncHandler } from '../utils/asyncHandler';
 
-// Event proposal routes (stubs). Mounted at /api/events.
-const router = Router();
+// Mounted at /api/communities/:communityId/events (membership pre-loaded).
+// Admins post events; members view and rate.
+const router = Router({ mergeParams: true });
 
-router.get('/', eventsController.list);
-router.post('/', eventsController.create);
-router.post('/:eventId/vote', eventsController.vote);
+router.get('/', requireMember, asyncHandler(eventsController.list));
+router.post('/', requireAdmin, asyncHandler(eventsController.create));
+router.post('/:eventId/rate', requireMember, asyncHandler(eventsController.rate));
 
 export default router;

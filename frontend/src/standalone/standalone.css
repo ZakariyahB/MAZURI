@@ -1,0 +1,13 @@
+/*
+ * Page-owning styles for STANDALONE mode only (the "our own website" path).
+ * Kept out of core/ so the embeddable core never assumes it owns the page.
+ */
+html,
+body,
+#community-bridge-root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: #f6f4ec;
+}
