@@ -5,7 +5,7 @@ type LandingPageProps = {
 };
 
 const stats = [
-  { num: '24', label: 'communities on Nafr.' },
+  { num: '24', label: 'communities on nafr.' },
   { num: '1,840', label: 'members across the UK' },
   { num: '73%', label: 'avg. issues addressed in 30 days' },
 ];
@@ -24,7 +24,7 @@ export function LandingPage({ onAuth }: LandingPageProps): JSX.Element {
       {/* Hero — dark, full-bleed, with its own transparent header. */}
       <section className="cb-hero" aria-labelledby="landing-title">
         <header className="cb-landing-header">
-          <span className="cb-landing-brand">Nafr.</span>
+          <span className="cb-landing-brand">nafr.</span>
           <nav className="cb-landing-nav" aria-label="Landing">
             <button type="button" className="cb-signin-link" onClick={() => onAuth('login')}>
               Log in
@@ -47,7 +47,7 @@ export function LandingPage({ onAuth }: LandingPageProps): JSX.Element {
           </h1>
 
           <p className="cb-hero-sub">
-            Nafr. gives mosques, schools, and community centres a structured way to listen to their
+            nafr. gives mosques, schools, and community centres a structured way to listen to their
             members — and a clear way to show they&rsquo;ve acted.
           </p>
 
@@ -76,7 +76,7 @@ export function LandingPage({ onAuth }: LandingPageProps): JSX.Element {
       {/* Intro — cream, "How Nafr. works". */}
       <section className="cb-howitworks" aria-labelledby="how-title">
         <h2 id="how-title" className="cb-how-title">
-          How Nafr. works
+          How nafr. works
         </h2>
         <p className="cb-how-sub">Three steps from problem to resolution</p>
 

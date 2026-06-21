@@ -64,7 +64,7 @@ export function CoreApp({ config }: { config: CoreAppConfig }): JSX.Element {
     <nav className="cb-nav" aria-label="Primary">
       <div className="cb-brand-block">
         <button type="button" className="cb-brand" onClick={() => setView('landing')}>
-          Nafr.
+          nafr.
         </button>
         <span className="cb-brand-subtitle">Community feedback platform</span>
       </div>

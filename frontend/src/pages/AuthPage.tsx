@@ -18,7 +18,7 @@ export function AuthPage({ mode, onModeChange, onAuthenticated, onBack }: AuthPa
     <section className="cb-page cb-auth-page" aria-labelledby="auth-title">
       <header className="cb-view-header cb-view-header--stacked">
         <div>
-          <p className="cb-eyebrow">Welcome to Nafr.</p>
+          <p className="cb-eyebrow">Welcome to nafr.</p>
           <h2 id="auth-title">{mode === 'login' ? 'Log in to your communities.' : 'Create your account.'}</h2>
         </div>
 
