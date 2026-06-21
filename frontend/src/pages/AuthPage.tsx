@@ -1,27 +1,29 @@
-import { useState } from 'react';
 import { Card } from '../components/Card';
 
-type AppView = 'landing' | 'communities' | 'auth' | 'member' | 'admin';
+type AuthMode = 'login' | 'signup';
 
 type AuthPageProps = {
-  onNavigate: (view: AppView) => void;
+  mode: AuthMode;
+  onModeChange: (mode: AuthMode) => void;
+  onAuthenticated: () => void;
+  onBack: () => void;
 };
 
-type Mode = 'member' | 'admin';
-
-export function AuthPage({ onNavigate }: AuthPageProps): JSX.Element {
-  const [mode, setMode] = useState<Mode>('member');
-
+/**
+ * Auth entry (prototype). Both Log in and Sign up are fake — submitting either
+ * drops the visitor into their "My communities" list.
+ */
+export function AuthPage({ mode, onModeChange, onAuthenticated, onBack }: AuthPageProps): JSX.Element {
   return (
     <section className="cb-page cb-auth-page" aria-labelledby="auth-title">
       <header className="cb-view-header cb-view-header--stacked">
         <div>
-          <p className="cb-eyebrow">Join Nafr.</p>
-          <h2 id="auth-title">Create a member account or request admin access.</h2>
+          <p className="cb-eyebrow">Welcome to Nafr.</p>
+          <h2 id="auth-title">{mode === 'login' ? 'Log in to your communities.' : 'Create your account.'}</h2>
         </div>
 
         <div className="cb-action-row">
-          <button type="button" className="cb-button cb-button--secondary" onClick={() => onNavigate('landing')}>
+          <button type="button" className="cb-button cb-button--secondary" onClick={onBack}>
             Back
           </button>
         </div>
@@ -33,68 +35,53 @@ export function AuthPage({ onNavigate }: AuthPageProps): JSX.Element {
             <button
               type="button"
               role="tab"
-              aria-selected={mode === 'member'}
-              className={mode === 'member' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-              onClick={() => setMode('member')}
+              aria-selected={mode === 'login'}
+              className={mode === 'login' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+              onClick={() => onModeChange('login')}
             >
-              Member sign in
+              Log in
             </button>
             <button
               type="button"
               role="tab"
-              aria-selected={mode === 'admin'}
-              className={mode === 'admin' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-              onClick={() => setMode('admin')}
+              aria-selected={mode === 'signup'}
+              className={mode === 'signup' ? 'cb-tab cb-tab--active' : 'cb-tab'}
+              onClick={() => onModeChange('signup')}
             >
-              Admin request
+              Sign up
             </button>
           </div>
 
-          {mode === 'member' ? (
-            <div className="cb-form-grid">
-              <div className="cb-note">Anyone can join a community as a member and start giving feedback immediately.</div>
+          <form
+            className="cb-form-grid"
+            onSubmit={(event) => {
+              event.preventDefault();
+              onAuthenticated();
+            }}
+          >
+            {mode === 'signup' ? (
               <label className="cb-field">
                 <span>Full name</span>
-                <div className="cb-field-input">Your name</div>
+                <input className="cb-field-input" type="text" placeholder="Your name" />
               </label>
-              <label className="cb-field">
-                <span>Email address</span>
-                <div className="cb-field-input">you@example.com</div>
-              </label>
-              <label className="cb-field">
-                <span>Password</span>
-                <div className="cb-field-input">Your password</div>
-              </label>
+            ) : null}
 
-              <div className="cb-action-row">
-                <button type="button" className="cb-button cb-button--primary" onClick={() => onNavigate('member')}>
-                  Join as member
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="cb-form-grid">
-              <div className="cb-note">Admin access is approved by the organisation's lead admin.</div>
-              <label className="cb-field">
-                <span>Full name</span>
-                <div className="cb-field-input">Your name</div>
-              </label>
-              <label className="cb-field">
-                <span>Community</span>
-                <div className="cb-field-input">Select your community</div>
-              </label>
-              <label className="cb-field">
-                <span>Role in the organisation</span>
-                <div className="cb-field-input">Committee secretary, trustee...</div>
-              </label>
+            <label className="cb-field">
+              <span>Email address</span>
+              <input className="cb-field-input" type="email" placeholder="you@example.com" />
+            </label>
 
-              <div className="cb-action-row">
-                <button type="button" className="cb-button cb-button--primary" onClick={() => onNavigate('admin')}>
-                  Request admin access
-                </button>
-              </div>
+            <label className="cb-field">
+              <span>Password</span>
+              <input className="cb-field-input" type="password" placeholder="Your password" />
+            </label>
+
+            <div className="cb-action-row">
+              <button type="submit" className="cb-button cb-button--primary">
+                {mode === 'login' ? 'Log in' : 'Create account'}
+              </button>
             </div>
-          )}
+          </form>
         </div>
       </Card>
     </section>

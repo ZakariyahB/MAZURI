@@ -1,10 +1,7 @@
 import './landing.css';
 
-type AppView = 'landing' | 'communities' | 'auth' | 'member' | 'admin';
-
 type LandingPageProps = {
-  apiBaseUrl: string;
-  onNavigate: (view: AppView) => void;
+  onAuth: (mode: 'login' | 'signup') => void;
 };
 
 const stats = [
@@ -21,21 +18,19 @@ const steps = [
   { n: '03', title: 'Show', body: 'Visible announcements close the loop so action is always traceable.' },
 ];
 
-export function LandingPage({ onNavigate }: LandingPageProps): JSX.Element {
+export function LandingPage({ onAuth }: LandingPageProps): JSX.Element {
   return (
     <div className="cb-landing">
       {/* Hero — dark, full-bleed, with its own transparent header. */}
       <section className="cb-hero" aria-labelledby="landing-title">
         <header className="cb-landing-header">
-          <button type="button" className="cb-landing-brand" onClick={() => onNavigate('landing')}>
-            Nafr.
-          </button>
+          <span className="cb-landing-brand">Nafr.</span>
           <nav className="cb-landing-nav" aria-label="Landing">
-            <button type="button" className="cb-signin-link" onClick={() => onNavigate('auth')}>
-              Sign in
+            <button type="button" className="cb-signin-link" onClick={() => onAuth('login')}>
+              Log in
             </button>
-            <button type="button" className="cb-pill-btn" onClick={() => onNavigate('communities')}>
-              Find your community
+            <button type="button" className="cb-pill-btn" onClick={() => onAuth('signup')}>
+              Sign up
             </button>
           </nav>
         </header>
@@ -57,13 +52,13 @@ export function LandingPage({ onNavigate }: LandingPageProps): JSX.Element {
           </p>
 
           <div className="cb-hero-cta">
-            <button type="button" className="cb-pill-btn cb-pill-btn--lg" onClick={() => onNavigate('communities')}>
-              <i className="ti ti-search" aria-hidden="true" />
-              Find your community
+            <button type="button" className="cb-pill-btn cb-pill-btn--lg" onClick={() => onAuth('signup')}>
+              <i className="ti ti-user-plus" aria-hidden="true" />
+              Sign up
             </button>
-            <button type="button" className="cb-ghost-btn" onClick={() => onNavigate('auth')}>
+            <button type="button" className="cb-ghost-btn" onClick={() => onAuth('login')}>
               <i className="ti ti-login-2" aria-hidden="true" />
-              Sign in
+              Log in
             </button>
           </div>
 

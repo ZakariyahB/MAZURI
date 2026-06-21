@@ -1,0 +1,333 @@
+/*
+ * Community workspace styles — scoped under .cb-root (embed-safe). Reuses the
+ * core.css app theme (cards, tabs, buttons) and fills in the pieces the core
+ * doesn't ship yet: upvotes, severity pills, status controls, the role toggle,
+ * the post dropdown, and the (fake) AI summary panel.
+ */
+
+/* ── Bits the core theme is missing ─────────────────────────── */
+.cb-root .cb-upvote {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fff;
+  border: 1px solid rgba(16, 33, 29, 0.14);
+  color: #10211d;
+  border-radius: 10px;
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.cb-root .cb-upvote:hover {
+  border-color: #c9a24b;
+  color: #8d6a20;
+}
+.cb-root .cb-upvote--voted {
+  background: rgba(201, 162, 75, 0.16);
+  border-color: #c9a24b;
+  color: #8d6a20;
+}
+.cb-root .cb-upvote i {
+  font-size: 15px;
+}
+
+.cb-root .cb-pill--red {
+  background: #fdeded;
+  color: #c0392b;
+}
+.cb-root .cb-pill--amber {
+  background: #fef7e4;
+  color: #8a6a12;
+}
+.cb-root .cb-pill--green {
+  background: #eaf5ed;
+  color: #1e6b38;
+}
+
+.cb-root .cb-card-time {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #62716b;
+}
+
+.cb-root .cb-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #62716b;
+  font-size: 0.95rem;
+  border: 1px dashed rgba(16, 33, 29, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.6);
+}
+.cb-root .cb-empty i {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 26px;
+  color: #c9a24b;
+}
+
+/* ── Status / kind tags ─────────────────────────────────────── */
+.cb-root .cb-tag {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+}
+.cb-root .cb-tag--todo {
+  background: rgba(16, 33, 29, 0.06);
+  color: #5b6a64;
+}
+.cb-root .cb-tag--progress {
+  background: #fef7e4;
+  color: #8a6a12;
+}
+.cb-root .cb-tag--done {
+  background: #eaf5ed;
+  color: #1e6b38;
+}
+.cb-root .cb-tag--notice {
+  background: rgba(13, 109, 90, 0.12);
+  color: #0d6d5a;
+}
+
+/* ── Community header ───────────────────────────────────────── */
+.cb-community .cb-comm-head {
+  align-items: flex-start;
+}
+.cb-community .cb-comm-back {
+  margin-bottom: 0.5rem;
+}
+.cb-community .cb-comm-title {
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  margin: 0 0 0.2rem;
+}
+
+/* Role toggle (segmented control) */
+.cb-community .cb-role-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(16, 33, 29, 0.1);
+  border-radius: 999px;
+  padding: 0.3rem 0.4rem 0.3rem 0.85rem;
+}
+.cb-community .cb-role-toggle-label {
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #62716b;
+  margin-right: 0.2rem;
+}
+.cb-community .cb-seg {
+  border: 0;
+  background: none;
+  border-radius: 999px;
+  padding: 0.4rem 0.95rem;
+  font: inherit;
+  font-size: 0.9rem;
+  color: #10211d;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease;
+}
+.cb-community .cb-seg--active {
+  background: #10211d;
+  color: #fff;
+}
+
+/* Toolbar row: tabs on the left, action on the right */
+.cb-community .cb-comm-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* ── Post dropdown ──────────────────────────────────────────── */
+.cb-community .cb-post-menu {
+  position: relative;
+}
+.cb-community .cb-post-menu > .cb-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.cb-community .cb-post-menu-list {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: 0.35rem;
+  background: #fff;
+  border: 1px solid rgba(16, 33, 29, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(16, 33, 29, 0.16);
+}
+.cb-community .cb-post-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border: 0;
+  background: none;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+  font: inherit;
+  font-size: 0.92rem;
+  color: #10211d;
+  text-align: left;
+  cursor: pointer;
+}
+.cb-community .cb-post-menu-item:hover {
+  background: rgba(16, 33, 29, 0.06);
+}
+.cb-community .cb-post-menu-item i {
+  color: #8d6a20;
+}
+
+/* ── AI summary (fake) ──────────────────────────────────────── */
+.cb-community .cb-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(201, 162, 75, 0.5);
+  background: linear-gradient(135deg, rgba(201, 162, 75, 0.12), rgba(13, 109, 90, 0.1));
+  color: #8d6a20;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+.cb-community .cb-ai-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(201, 162, 75, 0.22);
+}
+.cb-community .cb-ai-panel {
+  border: 1px solid rgba(201, 162, 75, 0.35);
+  background: linear-gradient(135deg, rgba(201, 162, 75, 0.08), rgba(13, 109, 90, 0.06));
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
+}
+.cb-community .cb-ai-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  color: #8d6a20;
+}
+.cb-community .cb-ai-panel p {
+  margin: 0;
+  color: #3f4f49;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+.cb-community .cb-ai-tag {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #0d6d5a;
+  background: rgba(13, 109, 90, 0.12);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ── Status select ──────────────────────────────────────────── */
+.cb-community .cb-status-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  font-size: 0.8rem;
+  color: #62716b;
+}
+.cb-community .cb-status-select {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid rgba(16, 33, 29, 0.16);
+  border-radius: 9px;
+  padding: 0.35rem 0.6rem;
+  background: #fff;
+  cursor: pointer;
+}
+.cb-community .cb-status-select.cb-tag--progress {
+  border-color: rgba(138, 106, 18, 0.5);
+  color: #8a6a12;
+}
+.cb-community .cb-status-select.cb-tag--done {
+  border-color: rgba(30, 107, 56, 0.5);
+  color: #1e6b38;
+}
+
+/* ── Lists / items ──────────────────────────────────────────── */
+.cb-community .cb-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.cb-community .cb-feed-item .cb-upvote {
+  margin-top: 0.65rem;
+}
+.cb-community .cb-update-item {
+  border-radius: 18px;
+  padding: 0.95rem 1.1rem;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(16, 33, 29, 0.08);
+}
+.cb-community .cb-update-item p {
+  margin: 0.4rem 0 0;
+  color: #5b6a64;
+}
+.cb-community .cb-comm-subhead {
+  margin: 0 0 0.7rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.15rem;
+  color: #10211d;
+}
+
+/* ── Composer ───────────────────────────────────────────────── */
+.cb-community .cb-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.2rem;
+  border: 1px solid rgba(16, 33, 29, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 34px rgba(16, 33, 29, 0.08);
+}
+.cb-community .cb-composer .cb-comm-subhead {
+  margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+  .cb-community .cb-role-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  .cb-community .cb-post-menu,
+  .cb-community .cb-post-menu > .cb-button {
+    width: 100%;
+    justify-content: center;
+  }
+  .cb-community .cb-post-menu-list {
+    left: 0;
+    right: 0;
+  }
+}
