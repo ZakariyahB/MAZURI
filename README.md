@@ -193,3 +193,65 @@ Reframe for ambition: this isn't a "feedback app," it's **civic infrastructure f
 The bones are strong: the public/private two-tier split is a real insight, the closed loop is a genuine flywheel, and the embed-first distribution quietly solves the cold-start problem that kills most community apps. The AI is now load-bearing (clustering, not a glorified dropdown). The model has margin.
 
 Remaining risk is mostly **execution and storytelling**, not concept: make the AI's value visible in the demo, name a first design partner, add the accountability metric, and rehearse the objection pre-empts. Do those and this pitches like a top-tier idea.
+
+---
+
+## 12. Local development (scaffold)
+
+> This repo currently contains a **scaffold only** — directories, skeleton files, and config. No feature logic is implemented yet. Everything compiles and runs clean; features get built on top.
+
+### Stack
+
+| Layer | Tech |
+|---|---|
+| Backend | Node.js + Express + TypeScript |
+| Frontend | React + TypeScript (Vite) |
+| Database | PostgreSQL + pgvector (for report clustering later) |
+| Orchestration | Docker Compose |
+
+### Run everything with Docker (recommended)
+
+```sh
+copy .env.example .env       :: Windows (cmd)  — or:  cp .env.example .env
+docker compose up --build
+```
+
+This brings up three services:
+
+- **postgres** — Postgres 16 with the `pgvector` extension enabled on first boot (`docker/postgres/init.sql`).
+- **backend** — Express API at <http://localhost:4000> (health check: <http://localhost:4000/health> → `{ "status": "ok" }`).
+- **frontend** — Vite dev server at <http://localhost:5173>.
+
+Ports and credentials are all driven by `.env` (see `.env.example` for every variable, with comments).
+
+### Run a service directly (without Docker)
+
+```sh
+cd backend && npm install && npm run dev      :: API on http://localhost:4000
+cd frontend && npm install && npm run dev     :: web on http://localhost:5173
+```
+
+When running the backend directly, point `DATABASE_URL` at `localhost` instead of the `postgres` service name.
+
+### Project layout
+
+```text
+backend/    Express + TS API (config, routes, controllers, services, middleware, models)
+frontend/   React + TS (Vite) — standalone-first, embed-ready (see §13)
+docker/     supporting docker config (postgres pgvector init)
+```
+
+---
+
+## 13. Frontend architecture — standalone-first, embed-ready
+
+**Open decision (A vs B), kept open by design:** the frontend may ultimately ship as **(A) an embeddable widget** other communities drop into their existing sites, or **(B) our own standalone website**. See the Distribution row in §4 and the embed layer in §7 — this is not yet locked.
+
+We are **building the standalone web app first** (simpler), but the code is structured so the embed becomes an *added wrapper, not a rewrite*:
+
+- **`frontend/src/core/`** — the self-contained core app. It mounts into whatever container it's handed and styles **only its own subtree** (scoped `cb-` CSS, no `html`/`body`/global styling), so it makes no assumption that it owns the page. This is what runs in *both* modes.
+- **`frontend/src/standalone/`** — the standalone entry (path **B**). Mounts `core` as a full hosted page. `src/main.tsx` boots this today.
+- **`frontend/src/embed/`** — placeholder (path **A**). When we build the widget, it will mount the *same* `CoreApp` inside a host element / Shadow DOM — without touching `core` or `standalone`.
+- **`frontend/src/api/`** — a **token-based** API client with a **configurable base URL**, so the same client works on our own page or on a third-party domain.
+
+**Backend is built embed-ready from day one:** auth is **JWT bearer tokens (not session cookies**, which break inside third-party embeds), and **CORS is configurable** via `CORS_ALLOWED_ORIGINS`. If we go the embed route, each host community's domain gets added there (or it becomes a per-org allowlist).

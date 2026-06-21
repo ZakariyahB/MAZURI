@@ -1,0 +1,69 @@
+/*
+ * Core app styles — scoped to .cb-root so the core NEVER styles the host page.
+ *
+ * Everything is namespaced under the `cb-` prefix and nested under .cb-root.
+ * There are deliberately no html/body/:root/global selectors and no reliance on
+ * owning the viewport, so these styles are safe to ship inside a third-party
+ * site (the embed model).
+ */
+
+.cb-root {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: #1a1a2e;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.cb-root *,
+.cb-root *::before,
+.cb-root *::after {
+  box-sizing: inherit;
+}
+
+.cb-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e2ea;
+}
+
+.cb-brand {
+  font-weight: 700;
+}
+
+.cb-nav-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cb-tab {
+  border: 1px solid #cfcfe0;
+  background: #ffffff;
+  border-radius: 6px;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.cb-tab--active {
+  background: #1a1a2e;
+  color: #ffffff;
+  border-color: #1a1a2e;
+}
+
+.cb-content {
+  padding: 1rem;
+}
+
+.cb-view h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.25rem;
+}
+
+.cb-card {
+  border: 1px solid #e2e2ea;
+  border-radius: 8px;
+  padding: 1rem;
+}
