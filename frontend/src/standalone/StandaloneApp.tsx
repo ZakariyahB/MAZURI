@@ -1,6 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { CoreApp, type CoreAppConfig } from '../core';
+// Page-owning resets for the standalone (hosted page) path only. The embeddable
+// core never imports this — it must not assume it owns the page background.
+import './standalone.css';
 
 /**
  * Standalone entry — the "our own website" path of the open A/B decision.
