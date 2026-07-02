@@ -1,19 +1,47 @@
+import { useState } from 'react';
 import { Card } from '../components/Card';
+import type { ApiClient } from '../api/client';
+import type { AuthResult } from '../api/types';
 
 type AuthMode = 'login' | 'signup';
 
 type AuthPageProps = {
+  api: ApiClient;
   mode: AuthMode;
   onModeChange: (mode: AuthMode) => void;
-  onAuthenticated: () => void;
+  onAuthenticated: (result: AuthResult) => void;
   onBack: () => void;
 };
 
 /**
- * Auth entry (prototype). Both Log in and Sign up are fake — submitting either
- * drops the visitor into their "My communities" list.
+ * Auth entry — signs up / logs in against /api/auth and hands the JWT + user
+ * back to the shell, which stores the token and switches to "My communities".
  */
-export function AuthPage({ mode, onModeChange, onAuthenticated, onBack }: AuthPageProps): JSX.Element {
+export function AuthPage({ api, mode, onModeChange, onAuthenticated, onBack }: AuthPageProps): JSX.Element {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const switchMode = (next: AuthMode): void => {
+    setError(null);
+    onModeChange(next);
+  };
+
+  const submit = async (): Promise<void> => {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const result =
+        mode === 'login' ? await api.login(email, password) : await api.signup(email, password);
+      onAuthenticated(result);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <section className="cb-page cb-auth-page" aria-labelledby="auth-title">
       <header className="cb-view-header cb-view-header--stacked">
@@ -37,7 +65,7 @@ export function AuthPage({ mode, onModeChange, onAuthenticated, onBack }: AuthPa
               role="tab"
               aria-selected={mode === 'login'}
               className={mode === 'login' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-              onClick={() => onModeChange('login')}
+              onClick={() => switchMode('login')}
             >
               Log in
             </button>
@@ -46,7 +74,7 @@ export function AuthPage({ mode, onModeChange, onAuthenticated, onBack }: AuthPa
               role="tab"
               aria-selected={mode === 'signup'}
               className={mode === 'signup' ? 'cb-tab cb-tab--active' : 'cb-tab'}
-              onClick={() => onModeChange('signup')}
+              onClick={() => switchMode('signup')}
             >
               Sign up
             </button>
@@ -56,29 +84,43 @@ export function AuthPage({ mode, onModeChange, onAuthenticated, onBack }: AuthPa
             className="cb-form-grid"
             onSubmit={(event) => {
               event.preventDefault();
-              onAuthenticated();
+              void submit();
             }}
           >
-            {mode === 'signup' ? (
-              <label className="cb-field">
-                <span>Full name</span>
-                <input className="cb-field-input" type="text" placeholder="Your name" />
-              </label>
-            ) : null}
-
             <label className="cb-field">
               <span>Email address</span>
-              <input className="cb-field-input" type="email" placeholder="you@example.com" />
+              <input
+                className="cb-field-input"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </label>
 
             <label className="cb-field">
               <span>Password</span>
-              <input className="cb-field-input" type="password" placeholder="Your password" />
+              <input
+                className="cb-field-input"
+                type="password"
+                placeholder={mode === 'signup' ? 'At least 6 characters' : 'Your password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={mode === 'signup' ? 6 : undefined}
+              />
             </label>
 
+            {error ? (
+              <p className="cb-form-error" role="alert">
+                {error}
+              </p>
+            ) : null}
+
             <div className="cb-action-row">
-              <button type="submit" className="cb-button cb-button--primary">
-                {mode === 'login' ? 'Log in' : 'Create account'}
+              <button type="submit" className="cb-button cb-button--primary" disabled={submitting}>
+                {submitting ? 'Please wait…' : mode === 'login' ? 'Log in' : 'Create account'}
               </button>
             </div>
           </form>

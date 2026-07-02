@@ -21,6 +21,18 @@ router.get('/leaderboard', asyncHandler(communitiesController.leaderboard));
 // Single community (member) + membership management (admin).
 router.get('/:communityId', loadMembership, requireMember, asyncHandler(communitiesController.get));
 router.get(
+  '/:communityId/analytics',
+  loadMembership,
+  requireMember,
+  asyncHandler(communitiesController.analytics),
+);
+router.post(
+  '/:communityId/subscription',
+  loadMembership,
+  requireAdmin,
+  asyncHandler(communitiesController.setSubscription),
+);
+router.get(
   '/:communityId/members',
   loadMembership,
   requireAdmin,

@@ -1,57 +1,44 @@
 import { useEffect, useRef, useState } from 'react';
 import './community.css';
+import { ApiError, type ApiClient } from '../api/client';
+import type {
+  Announcement,
+  CommunityAnalytics,
+  CommunityMember,
+  CommunityWithRole,
+  EventItem,
+  Incident,
+  Post,
+  ReportCluster,
+  Severity,
+  Suggestion,
+  Tier,
+  Urgency,
+} from '../api/types';
+import { formatDate, timeAgo } from '../utils/time';
 
 type CommunityPageProps = {
-  communityName: string;
+  api: ApiClient;
+  community: CommunityWithRole;
   onBack: () => void;
 };
 
-type Role = 'member' | 'admin';
-type Status = 'todo' | 'in-progress' | 'done';
-type Severity = 'RED' | 'AMBER' | 'GREEN';
+type ViewAs = 'member' | 'admin';
+type MemberTab = 'suggestions' | 'events' | 'updates';
+type AdminTab = 'suggestions' | 'reports' | 'members';
+type ComposerKind = 'suggestion' | 'report' | 'event' | 'announcement' | 'post';
 
-type Suggestion = { id: number; title: string; body: string; votes: number; voted: boolean; status: Status };
-type Report = { id: number; title: string; body: string; severity: Severity; status: Status };
-type EventItem = { id: number; title: string; when: string; votes: number; voted: boolean };
-type Update = { id: number; title: string; body: string; kind: 'implemented' | 'notice'; date: string };
-
-const STATUS_LABEL: Record<Status, string> = {
-  todo: 'To do',
-  'in-progress': 'In progress',
-  done: 'Done',
+const SEVERITY_PILL: Record<Severity, string> = {
+  RED: 'cb-pill--red',
+  AMBER: 'cb-pill--amber',
+  GREEN: 'cb-pill--green',
 };
 
-const STATUS_CLASS: Record<Status, string> = {
-  todo: 'cb-tag--todo',
-  'in-progress': 'cb-tag--progress',
-  done: 'cb-tag--done',
+const URGENCY_PILL: Record<Urgency, string> = {
+  safety: 'cb-pill--red',
+  facilities: 'cb-pill--amber',
+  general: 'cb-pill--green',
 };
-
-// Full prototype content lives only on East London Mosque (the demo community).
-const seedSuggestions = (): Suggestion[] => [
-  { id: 1, title: 'Earlier Fajr congregation in summer', body: 'Members asked for an earlier jamaaʻah during the long summer days.', votes: 41, voted: false, status: 'done' },
-  { id: 2, title: 'Softer lighting in the main prayer hall', body: 'Warmer, dimmable lighting for evening and night prayers.', votes: 28, voted: false, status: 'in-progress' },
-  { id: 3, title: 'Add a bookshelf to the sisters’ section', body: 'A small Islamic library for the women’s prayer area.', votes: 19, voted: false, status: 'todo' },
-  { id: 4, title: 'Bike racks at the main entrance', body: 'Secure cycle parking for members who ride to prayers.', votes: 12, voted: false, status: 'todo' },
-];
-
-const seedReports = (): Report[] => [
-  { id: 1, title: 'Fire exit near the wudu area is blocked', body: 'Boxes stacked against the side fire door.', severity: 'RED', status: 'todo' },
-  { id: 2, title: 'Leaking tap in the men’s wudu area', body: 'Second sink from the left drips constantly.', severity: 'AMBER', status: 'in-progress' },
-  { id: 3, title: 'Flickering light in the car park', body: 'Back-corner light needs replacing.', severity: 'GREEN', status: 'todo' },
-];
-
-const seedEvents = (): EventItem[] => [
-  { id: 1, title: 'Community Iftar — last 10 nights', when: 'Proposed for Ramadan · Main hall', votes: 64, voted: false },
-  { id: 2, title: 'Youth football tournament', when: 'Proposed for August · Mile End park', votes: 38, voted: false },
-  { id: 3, title: 'New Muslim welcome evening', when: 'Proposed monthly · Learning room', votes: 22, voted: false },
-];
-
-const seedUpdates = (): Update[] => [
-  { id: 1, title: 'Softer prayer-hall lighting installed', body: 'Following 28 votes, warm dimmable LEDs are now fitted in the main hall.', kind: 'implemented', date: '2 days ago' },
-  { id: 2, title: 'Earlier summer Fajr congregation now in place', body: 'Jamaaʻah brought forward for the summer timetable — see the noticeboard.', kind: 'implemented', date: '1 week ago' },
-  { id: 3, title: 'Jumuʻah parking changes from this Friday', body: 'Overflow parking moves to the rear lot. Please follow the stewards.', kind: 'notice', date: '3 days ago' },
-];
 
 /** Lightweight dropdown: a trigger button that reveals a small menu of actions. */
 function PostMenu({ label, options }: { label: string; options: { label: string; icon: string; onSelect: () => void }[] }): JSX.Element {
@@ -102,72 +89,387 @@ function PostMenu({ label, options }: { label: string; options: { label: string;
   );
 }
 
-export function CommunityPage({ communityName, onBack }: CommunityPageProps): JSX.Element {
-  const hasContent = communityName === 'East London Mosque';
+/**
+ * A community workspace, live against the API. Members post suggestions
+ * (public, moderated) and private reports; admins moderate, triage reports
+ * (AI clustering on the Insights tier), resolve, post announcements / posts /
+ * events, and manage members. Real role comes from the membership.
+ */
+export function CommunityPage({ api, community, onBack }: CommunityPageProps): JSX.Element {
+  const isAdmin = community.role === 'admin';
+  const id = community.id;
 
-  const [role, setRole] = useState<Role>('member');
-  const [suggestions, setSuggestions] = useState<Suggestion[]>(hasContent ? seedSuggestions : () => []);
-  const [reports, setReports] = useState<Report[]>(hasContent ? seedReports : () => []);
-  const [events, setEvents] = useState<EventItem[]>(hasContent ? seedEvents : () => []);
-  const [updates, setUpdates] = useState<Update[]>(hasContent ? seedUpdates : () => []);
+  const [viewAs, setViewAs] = useState<ViewAs>(isAdmin ? 'admin' : 'member');
+  const [tier, setTier] = useState<Tier>(community.tier);
 
-  const [memberTab, setMemberTab] = useState<'suggestions' | 'events' | 'updates'>('suggestions');
-  const [adminTab, setAdminTab] = useState<'suggestions' | 'reports' | 'posts'>('suggestions');
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [queue, setQueue] = useState<Suggestion[]>([]);
+  const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [members, setMembers] = useState<CommunityMember[]>([]);
+  const [analytics, setAnalytics] = useState<CommunityAnalytics | null>(null);
+
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const [memberTab, setMemberTab] = useState<MemberTab>('suggestions');
+  const [adminTab, setAdminTab] = useState<AdminTab>('suggestions');
+
+  // One-vote / one-rating state for this session; reconciled against the API's 409s.
+  const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+  const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
+
+  // AI triage (Insights tier).
+  const [clusters, setClusters] = useState<ReportCluster[] | null>(null);
+  const [clustersLoading, setClustersLoading] = useState(false);
+  const [clustersError, setClustersError] = useState<string | null>(null);
+  const [upgrading, setUpgrading] = useState(false);
 
   // Inline composer state ('which form is open', shared between roles).
-  const [composer, setComposer] = useState<null | 'suggestion' | 'report' | 'event' | 'announcement'>(null);
-  const [draftTitle, setDraftTitle] = useState('');
+  const [composer, setComposer] = useState<ComposerKind | null>(null);
   const [draftBody, setDraftBody] = useState('');
-  const [aiOpen, setAiOpen] = useState(false);
+  const [draftTitle, setDraftTitle] = useState('');
+  const [draftDate, setDraftDate] = useState('');
+  const [draftSeverity, setDraftSeverity] = useState<Severity>('AMBER');
+  const [composerError, setComposerError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async (): Promise<void> => {
+      try {
+        const [sugg, evts, anns, psts, stats] = await Promise.all([
+          api.listSuggestions(id),
+          api.listEvents(id),
+          api.listAnnouncements(id),
+          api.listPosts(id),
+          api.getAnalytics(id),
+        ]);
+        if (cancelled) return;
+        setSuggestions(sugg);
+        setEvents(evts);
+        setAnnouncements(anns);
+        setPosts(psts);
+        setAnalytics(stats);
+
+        if (isAdmin) {
+          const [pending, incs, membs] = await Promise.all([
+            api.listSuggestionQueue(id),
+            api.listIncidents(id),
+            api.listMembers(id),
+          ]);
+          if (cancelled) return;
+          setQueue(pending);
+          setIncidents(incs);
+          setMembers(membs);
+        }
+      } catch (err) {
+        if (!cancelled) setLoadError((err as Error).message);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [api, id, isAdmin]);
+
+  const refreshAnalytics = (): void => {
+    api.getAnalytics(id).then(setAnalytics).catch(() => undefined);
+  };
 
   const closeComposer = (): void => {
     setComposer(null);
-    setDraftTitle('');
     setDraftBody('');
+    setDraftTitle('');
+    setDraftDate('');
+    setDraftSeverity('AMBER');
+    setComposerError(null);
   };
 
-  const toggleVote = (id: number, list: 'suggestions' | 'events'): void => {
-    if (list === 'suggestions') {
-      setSuggestions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, voted: !s.voted, votes: s.votes + (s.voted ? -1 : 1) } : s)),
-      );
-    } else {
-      setEvents((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, voted: !e.voted, votes: e.votes + (e.voted ? -1 : 1) } : e)),
-      );
+  const openComposer = (kind: ComposerKind): void => {
+    setNotice(null);
+    setComposerError(null);
+    setComposer(kind);
+  };
+
+  const submitComposer = async (): Promise<void> => {
+    setComposerError(null);
+    setSubmitting(true);
+    try {
+      if (composer === 'suggestion') {
+        const created = await api.createSuggestion(id, draftBody);
+        setNotice('Suggestion submitted — it appears in the public feed once an admin approves it.');
+        if (isAdmin) setQueue((prev) => [created, ...prev]);
+      } else if (composer === 'report') {
+        const created = await api.createIncident(id, draftBody, draftSeverity);
+        setNotice('Report sent — only admins can see it.');
+        if (isAdmin) setIncidents((prev) => [created, ...prev]);
+        refreshAnalytics();
+      } else if (composer === 'event') {
+        const created = await api.createEvent(id, {
+          title: draftTitle,
+          description: draftBody,
+          event_date: draftDate,
+        });
+        setEvents((prev) => [created, ...prev]);
+      } else if (composer === 'announcement') {
+        const created = await api.createAnnouncement(id, draftBody);
+        setAnnouncements((prev) => [created, ...prev]);
+      } else if (composer === 'post') {
+        const created = await api.createPost(id, draftBody);
+        setPosts((prev) => [created, ...prev]);
+      }
+      closeComposer();
+    } catch (err) {
+      setComposerError((err as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const setSuggestionStatus = (id: number, status: Status): void =>
-    setSuggestions((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
-
-  const setReportStatus = (id: number, status: Status): void =>
-    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-
-  const submitComposer = (): void => {
-    const title = draftTitle.trim() || 'Untitled';
-    const body = draftBody.trim() || 'No details provided.';
-    const id = Date.now();
-    if (composer === 'suggestion') {
-      setSuggestions((prev) => [{ id, title, body, votes: 1, voted: true, status: 'todo' }, ...prev]);
-      setMemberTab('suggestions');
-    } else if (composer === 'report') {
-      setReports((prev) => [{ id, title, body, severity: 'AMBER', status: 'todo' }, ...prev]);
-    } else if (composer === 'event') {
-      setEvents((prev) => [{ id, title, when: body, votes: 0, voted: false }, ...prev]);
-      setAdminTab('posts');
-    } else if (composer === 'announcement') {
-      setUpdates((prev) => [{ id, title, body, kind: 'notice', date: 'Just now' }, ...prev]);
-      setAdminTab('posts');
+  const upvote = async (suggestion: Suggestion): Promise<void> => {
+    if (votedIds.has(suggestion.id)) return;
+    try {
+      const updated = await api.upvoteSuggestion(id, suggestion.id);
+      setSuggestions((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      setVotedIds((prev) => new Set(prev).add(suggestion.id));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        // Already voted in a previous session — remember it locally.
+        setVotedIds((prev) => new Set(prev).add(suggestion.id));
+      } else {
+        setNotice((err as Error).message);
+      }
     }
-    closeComposer();
   };
 
-  const composerTitleLabel: Record<string, string> = {
-    suggestion: 'Post a suggestion',
-    report: 'Report a problem',
-    event: 'Propose an event',
-    announcement: 'Post an announcement',
+  const rate = async (event: EventItem, rating: number): Promise<void> => {
+    if (ratedIds.has(event.id)) return;
+    try {
+      await api.rateEvent(id, event.id, rating);
+      setRatedIds((prev) => new Set(prev).add(event.id));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setRatedIds((prev) => new Set(prev).add(event.id));
+      } else {
+        setNotice((err as Error).message);
+      }
+    }
+  };
+
+  const moderate = async (suggestion: Suggestion, decision: 'approve' | 'reject'): Promise<void> => {
+    try {
+      const updated = await api.moderateSuggestion(id, suggestion.id, decision);
+      setQueue((prev) => prev.filter((s) => s.id !== suggestion.id));
+      if (updated.status === 'approved') {
+        setSuggestions((prev) =>
+          [...prev, updated].sort((a, b) => b.upvote_count - a.upvote_count),
+        );
+      }
+    } catch (err) {
+      setNotice((err as Error).message);
+    }
+  };
+
+  const resolve = async (incident: Incident): Promise<void> => {
+    try {
+      const updated = await api.resolveIncident(id, incident.id);
+      setIncidents((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+      refreshAnalytics();
+    } catch (err) {
+      setNotice((err as Error).message);
+    }
+  };
+
+  const promote = async (member: CommunityMember): Promise<void> => {
+    try {
+      await api.promoteToAdmin(id, member.user_id);
+      setMembers((prev) =>
+        prev.map((m) => (m.user_id === member.user_id ? { ...m, role: 'admin' } : m)),
+      );
+    } catch (err) {
+      setNotice((err as Error).message);
+    }
+  };
+
+  const upgrade = async (): Promise<void> => {
+    setUpgrading(true);
+    setClustersError(null);
+    try {
+      const { community: updated } = await api.setSubscription(id, 'insights');
+      setTier(updated.tier);
+    } catch (err) {
+      setClustersError((err as Error).message);
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const runTriage = async (): Promise<void> => {
+    setClustersError(null);
+    setClustersLoading(true);
+    try {
+      setClusters(await api.getReportClusters(id));
+    } catch (err) {
+      setClustersError((err as Error).message);
+    } finally {
+      setClustersLoading(false);
+    }
+  };
+
+  // Announcements + community posts merged into one "Updates" feed.
+  const updates = [
+    ...announcements.map((a) => ({ ...a, kind: 'announcement' as const })),
+    ...posts.map((p) => ({ ...p, kind: 'post' as const })),
+  ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  const incidentById = new Map(incidents.map((r) => [r.id, r]));
+  const openIncidents = incidents.filter((r) => r.status === 'open');
+
+  const composerMeta: Record<ComposerKind, { title: string; note: string; bodyLabel: string }> = {
+    suggestion: {
+      title: 'Post a suggestion',
+      note: 'Suggestions are public — other members can upvote them once approved.',
+      bodyLabel: 'Your suggestion',
+    },
+    report: {
+      title: 'Report a problem',
+      note: 'Problem reports are private — only admins can see them.',
+      bodyLabel: 'What’s the problem?',
+    },
+    event: {
+      title: 'Propose an event',
+      note: 'Members can rate the event once it has taken place.',
+      bodyLabel: 'Description',
+    },
+    announcement: {
+      title: 'Post an announcement',
+      note: 'Announcements appear in every member’s Updates tab — use them to close the loop.',
+      bodyLabel: 'Announcement',
+    },
+    post: {
+      title: 'Community post',
+      note: 'A general update for the community feed.',
+      bodyLabel: 'Post',
+    },
+  };
+
+  const composerCard =
+    composer !== null ? (
+      <form
+        className="cb-composer"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submitComposer();
+        }}
+      >
+        <h3 className="cb-comm-subhead">{composerMeta[composer].title}</h3>
+        <div className="cb-note">{composerMeta[composer].note}</div>
+
+        {composer === 'event' ? (
+          <>
+            <label className="cb-field">
+              <span>Title</span>
+              <input
+                className="cb-field-input"
+                value={draftTitle}
+                onChange={(e) => setDraftTitle(e.target.value)}
+                placeholder="Community Iftar"
+                required
+              />
+            </label>
+            <label className="cb-field">
+              <span>Date &amp; time</span>
+              <input
+                className="cb-field-input"
+                type="datetime-local"
+                value={draftDate}
+                onChange={(e) => setDraftDate(e.target.value)}
+                required
+              />
+            </label>
+          </>
+        ) : null}
+
+        {composer === 'report' ? (
+          <label className="cb-field">
+            <span>Severity</span>
+            <select
+              className="cb-field-input"
+              value={draftSeverity}
+              onChange={(e) => setDraftSeverity(e.target.value as Severity)}
+            >
+              <option value="RED">RED — safety</option>
+              <option value="AMBER">AMBER — facilities</option>
+              <option value="GREEN">GREEN — general feedback</option>
+            </select>
+          </label>
+        ) : null}
+
+        <label className="cb-field">
+          <span>{composerMeta[composer].bodyLabel}</span>
+          <textarea
+            className="cb-field-input cb-field-input--textarea"
+            value={draftBody}
+            onChange={(e) => setDraftBody(e.target.value)}
+            placeholder="Add a little detail..."
+            required={composer !== 'event'}
+          />
+        </label>
+
+        {composerError ? (
+          <p className="cb-form-error" role="alert">
+            {composerError}
+          </p>
+        ) : null}
+
+        <div className="cb-action-row">
+          <button type="submit" className="cb-button cb-button--primary" disabled={submitting}>
+            {submitting ? 'Posting…' : 'Post'}
+          </button>
+          <button type="button" className="cb-button cb-button--secondary" onClick={closeComposer}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    ) : null;
+
+  const memberPostMenu = (
+    <PostMenu
+      label="Post"
+      options={[
+        { label: 'Post suggestion', icon: 'ti-bulb', onSelect: () => openComposer('suggestion') },
+        { label: 'Report problem', icon: 'ti-alert-triangle', onSelect: () => openComposer('report') },
+      ]}
+    />
+  );
+
+  const adminPostMenu = (
+    <PostMenu
+      label="Post"
+      options={[
+        { label: 'Propose an event', icon: 'ti-calendar-plus', onSelect: () => openComposer('event') },
+        { label: 'Post announcement', icon: 'ti-speakerphone', onSelect: () => openComposer('announcement') },
+        { label: 'Community post', icon: 'ti-notes', onSelect: () => openComposer('post') },
+      ]}
+    />
+  );
+
+  const eventRating = (event: EventItem): JSX.Element => {
+    const isPast = new Date(event.event_date).getTime() <= Date.now();
+    if (!isPast) return <span className="cb-tag cb-tag--notice">Upcoming</span>;
+    if (ratedIds.has(event.id)) return <span className="cb-tag cb-tag--done">Rated — thanks!</span>;
+    return (
+      <span className="cb-rate-row" aria-label={`Rate ${event.title}`}>
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} type="button" className="cb-rate-btn" onClick={() => void rate(event, n)}>
+            {n}
+          </button>
+        ))}
+      </span>
+    );
   };
 
   return (
@@ -177,45 +479,65 @@ export function CommunityPage({ communityName, onBack }: CommunityPageProps): JS
           <button type="button" className="cb-link-button cb-comm-back" onClick={onBack}>
             ← My communities
           </button>
-          <h2 id="community-title" className="cb-comm-title">{communityName}</h2>
-          <p className="cb-muted">Whitechapel, London E1 · 412 members</p>
+          <h2 id="community-title" className="cb-comm-title">
+            {community.name}
+          </h2>
+          <p className="cb-muted">
+            Join code: {community.join_code} · {tier === 'insights' ? 'Insights tier' : 'Free tier'}
+            {analytics && analytics.addressed_within_window_pct !== null
+              ? ` · ${analytics.addressed_within_window_pct}% of reports addressed within ${analytics.window_days} days`
+              : ''}
+          </p>
         </div>
 
-        <div className="cb-role-toggle" role="tablist" aria-label="View as">
-          <span className="cb-role-toggle-label">View as</span>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={role === 'member'}
-            className={role === 'member' ? 'cb-seg cb-seg--active' : 'cb-seg'}
-            onClick={() => {
-              setRole('member');
-              closeComposer();
-            }}
-          >
-            Member
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={role === 'admin'}
-            className={role === 'admin' ? 'cb-seg cb-seg--active' : 'cb-seg'}
-            onClick={() => {
-              setRole('admin');
-              closeComposer();
-            }}
-          >
-            Admin
-          </button>
-        </div>
+        {isAdmin ? (
+          <div className="cb-role-toggle" role="tablist" aria-label="View as">
+            <span className="cb-role-toggle-label">View as</span>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewAs === 'member'}
+              className={viewAs === 'member' ? 'cb-seg cb-seg--active' : 'cb-seg'}
+              onClick={() => {
+                setViewAs('member');
+                closeComposer();
+              }}
+            >
+              Member
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewAs === 'admin'}
+              className={viewAs === 'admin' ? 'cb-seg cb-seg--active' : 'cb-seg'}
+              onClick={() => {
+                setViewAs('admin');
+                closeComposer();
+              }}
+            >
+              Admin
+            </button>
+          </div>
+        ) : null}
       </header>
 
-      {!hasContent ? (
-        <div className="cb-empty">
-          <i className="ti ti-seedling" aria-hidden="true" />
-          Nothing posted in {communityName} yet.
+      {loadError ? (
+        <div className="cb-empty" role="alert">
+          <i className="ti ti-alert-circle" aria-hidden="true" />
+          {loadError}
         </div>
-      ) : role === 'member' ? (
+      ) : null}
+
+      {notice ? (
+        <div className="cb-note" role="status">
+          {notice}{' '}
+          <button type="button" className="cb-link-button" onClick={() => setNotice(null)}>
+            dismiss
+          </button>
+        </div>
+      ) : null}
+
+      {viewAs === 'member' ? (
         /* ── MEMBER ──────────────────────────────────────────── */
         <>
           <div className="cb-comm-bar">
@@ -231,44 +553,28 @@ export function CommunityPage({ communityName, onBack }: CommunityPageProps): JS
               </button>
             </div>
 
-            <PostMenu
-              label="Post"
-              options={[
-                { label: 'Post suggestion', icon: 'ti-bulb', onSelect: () => setComposer('suggestion') },
-                { label: 'Report problem', icon: 'ti-alert-triangle', onSelect: () => setComposer('report') },
-              ]}
-            />
+            {memberPostMenu}
           </div>
 
-          {composer === 'suggestion' || composer === 'report' ? (
-            <ComposerCard
-              title={composerTitleLabel[composer]}
-              titleValue={draftTitle}
-              bodyValue={draftBody}
-              bodyLabel={composer === 'report' ? 'What’s the problem?' : 'Details'}
-              onTitle={setDraftTitle}
-              onBody={setDraftBody}
-              onSubmit={submitComposer}
-              onCancel={closeComposer}
-              note={composer === 'report' ? 'Problem reports are private — only admins can see them.' : 'Suggestions are public and other members can upvote them.'}
-            />
-          ) : null}
+          {composer === 'suggestion' || composer === 'report' ? composerCard : null}
 
           {memberTab === 'suggestions' ? (
             <div className="cb-item-list">
+              {suggestions.length === 0 ? (
+                <p className="cb-muted">No approved suggestions yet — be the first to post one.</p>
+              ) : null}
               {suggestions.map((s) => (
                 <article key={s.id} className="cb-feed-item">
                   <div className="cb-feed-topline">
-                    <strong>{s.title}</strong>
-                    <span className={`cb-tag ${STATUS_CLASS[s.status]}`}>{STATUS_LABEL[s.status]}</span>
+                    <strong>{s.body}</strong>
                   </div>
-                  <p>{s.body}</p>
+                  <span className="cb-card-time">{timeAgo(s.created_at)}</span>
                   <button
                     type="button"
-                    className={s.voted ? 'cb-upvote cb-upvote--voted' : 'cb-upvote'}
-                    onClick={() => toggleVote(s.id, 'suggestions')}
+                    className={votedIds.has(s.id) ? 'cb-upvote cb-upvote--voted' : 'cb-upvote'}
+                    onClick={() => void upvote(s)}
                   >
-                    <i className="ti ti-arrow-big-up" aria-hidden="true" /> {s.votes}
+                    <i className="ti ti-arrow-big-up" aria-hidden="true" /> {s.upvote_count}
                   </button>
                 </article>
               ))}
@@ -277,22 +583,18 @@ export function CommunityPage({ communityName, onBack }: CommunityPageProps): JS
 
           {memberTab === 'events' ? (
             <div className="cb-item-list">
-              <p className="cb-muted">Potential events — upvote the ones you&rsquo;d come to.</p>
+              <p className="cb-muted">Rate events you attended (1–5) — upcoming ones are marked.</p>
+              {events.length === 0 ? <p className="cb-muted">No events yet.</p> : null}
               {events.map((e) => (
                 <article key={e.id} className="cb-event-item">
                   <div>
                     <strong>{e.title}</strong>
-                    <p>{e.when}</p>
+                    <p>
+                      {e.description ? `${e.description} · ` : ''}
+                      {formatDate(e.event_date)}
+                    </p>
                   </div>
-                  <div className="cb-event-meta">
-                    <button
-                      type="button"
-                      className={e.voted ? 'cb-upvote cb-upvote--voted' : 'cb-upvote'}
-                      onClick={() => toggleVote(e.id, 'events')}
-                    >
-                      <i className="ti ti-arrow-big-up" aria-hidden="true" /> {e.votes}
-                    </button>
-                  </div>
+                  <div className="cb-event-meta">{eventRating(e)}</div>
                 </article>
               ))}
             </div>
@@ -300,16 +602,16 @@ export function CommunityPage({ communityName, onBack }: CommunityPageProps): JS
 
           {memberTab === 'updates' ? (
             <div className="cb-item-list">
+              {updates.length === 0 ? <p className="cb-muted">No updates yet.</p> : null}
               {updates.map((u) => (
-                <article key={u.id} className="cb-update-item">
+                <article key={`${u.kind}-${u.id}`} className="cb-update-item">
                   <div className="cb-feed-topline">
-                    <strong>{u.title}</strong>
-                    <span className={u.kind === 'implemented' ? 'cb-tag cb-tag--done' : 'cb-tag cb-tag--notice'}>
-                      {u.kind === 'implemented' ? 'Implemented' : 'Notice'}
+                    <strong>{u.body}</strong>
+                    <span className={u.kind === 'announcement' ? 'cb-tag cb-tag--done' : 'cb-tag cb-tag--notice'}>
+                      {u.kind === 'announcement' ? 'Announcement' : 'Post'}
                     </span>
                   </div>
-                  <p>{u.body}</p>
-                  <span className="cb-card-time">{u.date}</span>
+                  <span className="cb-card-time">{timeAgo(u.created_at)}</span>
                 </article>
               ))}
             </div>
@@ -321,85 +623,57 @@ export function CommunityPage({ communityName, onBack }: CommunityPageProps): JS
           <div className="cb-comm-bar">
             <div className="cb-view-toolbar" role="tablist" aria-label="Admin sections">
               <button type="button" className={adminTab === 'suggestions' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('suggestions')}>
-                Suggestions
+                Suggestions{queue.length > 0 ? ` (${queue.length})` : ''}
               </button>
               <button type="button" className={adminTab === 'reports' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('reports')}>
-                Reports
+                Reports{openIncidents.length > 0 ? ` (${openIncidents.length})` : ''}
               </button>
-              <button type="button" className={adminTab === 'posts' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('posts')}>
-                Posts
+              <button type="button" className={adminTab === 'members' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('members')}>
+                Members
               </button>
             </div>
 
-            <PostMenu
-              label="Post"
-              options={[
-                { label: 'Propose an event', icon: 'ti-calendar-plus', onSelect: () => setComposer('event') },
-                { label: 'Post announcement', icon: 'ti-speakerphone', onSelect: () => setComposer('announcement') },
-              ]}
-            />
+            {adminPostMenu}
           </div>
 
-          {composer === 'event' || composer === 'announcement' ? (
-            <ComposerCard
-              title={composerTitleLabel[composer]}
-              titleValue={draftTitle}
-              bodyValue={draftBody}
-              bodyLabel={composer === 'event' ? 'When & where' : 'Announcement'}
-              onTitle={setDraftTitle}
-              onBody={setDraftBody}
-              onSubmit={submitComposer}
-              onCancel={closeComposer}
-              note={composer === 'event' ? 'Members will be able to upvote this proposed event.' : 'Announcements appear in every member’s Updates tab.'}
-            />
-          ) : null}
+          {composer === 'event' || composer === 'announcement' || composer === 'post' ? composerCard : null}
 
           {adminTab === 'suggestions' ? (
             <>
-              <div className="cb-comm-bar">
-                <p className="cb-muted">Set a status as work progresses.</p>
-                <button type="button" className="cb-ai-btn" onClick={() => setAiOpen((v) => !v)}>
-                  <i className="ti ti-sparkles" aria-hidden="true" /> Summarise biggest ideas
-                </button>
+              <h3 className="cb-comm-subhead">Moderation queue</h3>
+              <div className="cb-item-list">
+                {queue.length === 0 ? <p className="cb-muted">Nothing waiting for review.</p> : null}
+                {queue.map((s) => (
+                  <article key={s.id} className="cb-queue-item">
+                    <div>
+                      <div className="cb-feed-topline">
+                        <strong>{s.body}</strong>
+                        <span className="cb-tag cb-tag--progress">Pending</span>
+                      </div>
+                      <span className="cb-card-time">{timeAgo(s.created_at)}</span>
+                    </div>
+                    <div className="cb-action-row">
+                      <button type="button" className="cb-button cb-button--primary" onClick={() => void moderate(s, 'approve')}>
+                        Approve
+                      </button>
+                      <button type="button" className="cb-button cb-button--secondary" onClick={() => void moderate(s, 'reject')}>
+                        Reject
+                      </button>
+                    </div>
+                  </article>
+                ))}
               </div>
 
-              {aiOpen ? (
-                <div className="cb-ai-panel">
-                  <div className="cb-ai-panel-head">
-                    <i className="ti ti-sparkles" aria-hidden="true" />
-                    <strong>AI summary</strong>
-                    <span className="cb-ai-tag">prototype</span>
-                  </div>
-                  <p>
-                    Three themes are emerging across {suggestions.length} suggestions:
-                    <strong> prayer-hall comfort</strong> (lighting &amp; seating, ~69 votes),
-                    <strong> youth engagement</strong> (football &amp; mentoring, ~38 votes), and
-                    <strong> facilities upkeep</strong> (wudu area &amp; parking). Recommended focus:
-                    prayer-hall comfort — highest combined demand and already in progress.
-                  </p>
-                </div>
-              ) : null}
-
+              <h3 className="cb-comm-subhead">Approved — crowd-prioritised</h3>
               <div className="cb-item-list">
+                {suggestions.length === 0 ? <p className="cb-muted">No approved suggestions yet.</p> : null}
                 {suggestions.map((s) => (
                   <article key={s.id} className="cb-feed-item">
                     <div className="cb-feed-topline">
-                      <strong>{s.title}</strong>
-                      <span className="cb-pill cb-pill--gold">{s.votes} votes</span>
+                      <strong>{s.body}</strong>
+                      <span className="cb-pill cb-pill--gold">{s.upvote_count} votes</span>
                     </div>
-                    <p>{s.body}</p>
-                    <label className="cb-status-row">
-                      <span>Status</span>
-                      <select
-                        className={`cb-status-select ${STATUS_CLASS[s.status]}`}
-                        value={s.status}
-                        onChange={(e) => setSuggestionStatus(s.id, e.target.value as Status)}
-                      >
-                        <option value="todo">To do</option>
-                        <option value="in-progress">In progress</option>
-                        <option value="done">Done</option>
-                      </select>
-                    </label>
+                    <span className="cb-card-time">{timeAgo(s.created_at)}</span>
                   </article>
                 ))}
               </div>
@@ -407,109 +681,128 @@ export function CommunityPage({ communityName, onBack }: CommunityPageProps): JS
           ) : null}
 
           {adminTab === 'reports' ? (
-            <div className="cb-item-list">
-              <p className="cb-muted">Private problem reports — members never see these.</p>
-              {reports.map((r) => (
-                <article key={r.id} className={`cb-queue-item ${r.severity === 'RED' ? 'cb-queue-item--urgent' : ''}`}>
-                  <div>
-                    <div className="cb-feed-topline">
-                      <strong>{r.title}</strong>
-                      <span className={`cb-pill cb-pill--${r.severity.toLowerCase()}`}>{r.severity}</span>
-                    </div>
-                    <p>{r.body}</p>
+            <>
+              <div className="cb-comm-bar">
+                <p className="cb-muted">Private problem reports — members never see these.</p>
+                {tier === 'insights' ? (
+                  <button type="button" className="cb-ai-btn" onClick={() => void runTriage()} disabled={clustersLoading}>
+                    <i className="ti ti-sparkles" aria-hidden="true" />{' '}
+                    {clustersLoading ? 'Clustering…' : 'AI triage: cluster reports'}
+                  </button>
+                ) : null}
+              </div>
+
+              {tier !== 'insights' ? (
+                <div className="cb-ai-panel">
+                  <div className="cb-ai-panel-head">
+                    <i className="ti ti-sparkles" aria-hidden="true" />
+                    <strong>AI triage is part of the Insights tier</strong>
+                    <span className="cb-ai-tag">£29/month</span>
                   </div>
-                  <label className="cb-status-row">
-                    <span>Status</span>
-                    <select
-                      className={`cb-status-select ${STATUS_CLASS[r.status]}`}
-                      value={r.status}
-                      onChange={(e) => setReportStatus(r.id, e.target.value as Status)}
-                    >
-                      <option value="todo">To do</option>
-                      <option value="in-progress">In progress</option>
-                      <option value="done">Done</option>
-                    </select>
-                  </label>
-                </article>
-              ))}
-            </div>
+                  <p>
+                    Insights clusters related reports, flags duplicates, and ranks them on the
+                    Safety &gt; Facilities &gt; General ladder — a prioritised queue instead of a flat inbox.
+                  </p>
+                  <div className="cb-action-row">
+                    <button type="button" className="cb-button cb-button--primary" onClick={() => void upgrade()} disabled={upgrading}>
+                      {upgrading ? 'Upgrading…' : 'Upgrade to Insights (demo)'}
+                    </button>
+                  </div>
+                  {clustersError ? <p className="cb-form-error">{clustersError}</p> : null}
+                </div>
+              ) : null}
+
+              {clustersError && tier === 'insights' ? (
+                <div className="cb-note" role="alert">
+                  {clustersError}
+                </div>
+              ) : null}
+
+              {clusters !== null && tier === 'insights' ? (
+                <div className="cb-ai-panel">
+                  <div className="cb-ai-panel-head">
+                    <i className="ti ti-sparkles" aria-hidden="true" />
+                    <strong>AI triage</strong>
+                    <span className="cb-ai-tag">
+                      {clusters.length} cluster{clusters.length === 1 ? '' : 's'} from {openIncidents.length} open reports
+                    </span>
+                  </div>
+                  {clusters.length === 0 ? <p>No open reports to cluster.</p> : null}
+                  {clusters.map((cluster) => (
+                    <article key={cluster.clusterId} className="cb-feed-item">
+                      <div className="cb-feed-topline">
+                        <strong>{cluster.summary}</strong>
+                        <span className={`cb-pill ${URGENCY_PILL[cluster.urgency]}`}>{cluster.urgency}</span>
+                      </div>
+                      <p className="cb-muted">
+                        {cluster.reportIds.length} report{cluster.reportIds.length === 1 ? '' : 's'}:{' '}
+                        {cluster.reportIds
+                          .map((rid) => incidentById.get(rid)?.body ?? rid)
+                          .map((body) => (body.length > 80 ? `${body.slice(0, 80)}…` : body))
+                          .join(' · ')}
+                      </p>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+
+              <div className="cb-item-list">
+                {incidents.length === 0 ? <p className="cb-muted">No reports yet.</p> : null}
+                {incidents.map((r) => (
+                  <article key={r.id} className={`cb-queue-item ${r.severity === 'RED' && r.status === 'open' ? 'cb-queue-item--urgent' : ''}`}>
+                    <div>
+                      <div className="cb-feed-topline">
+                        <strong>{r.body}</strong>
+                        <span className={`cb-pill ${SEVERITY_PILL[r.severity]}`}>{r.severity}</span>
+                      </div>
+                      <span className="cb-card-time">
+                        {timeAgo(r.created_at)}
+                        {r.status === 'resolved' && r.resolved_at ? ` · resolved ${timeAgo(r.resolved_at)}` : ''}
+                      </span>
+                    </div>
+                    <div className="cb-action-row">
+                      {r.status === 'open' ? (
+                        <button type="button" className="cb-button cb-button--primary" onClick={() => void resolve(r)}>
+                          Mark resolved
+                        </button>
+                      ) : (
+                        <span className="cb-tag cb-tag--done">Resolved</span>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
           ) : null}
 
-          {adminTab === 'posts' ? (
-            <div className="cb-grid cb-grid--two">
-              <div>
-                <h3 className="cb-comm-subhead">Potential events</h3>
-                <div className="cb-item-list">
-                  {events.map((e) => (
-                    <article key={e.id} className="cb-event-item">
-                      <div>
-                        <strong>{e.title}</strong>
-                        <p>{e.when}</p>
-                      </div>
-                      <span className="cb-pill cb-pill--gold">{e.votes} votes</span>
-                    </article>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="cb-comm-subhead">Announcements &amp; updates</h3>
-                <div className="cb-item-list">
-                  {updates.map((u) => (
-                    <article key={u.id} className="cb-update-item">
-                      <div className="cb-feed-topline">
-                        <strong>{u.title}</strong>
-                        <span className={u.kind === 'implemented' ? 'cb-tag cb-tag--done' : 'cb-tag cb-tag--notice'}>
-                          {u.kind === 'implemented' ? 'Implemented' : 'Notice'}
-                        </span>
-                      </div>
-                      <p>{u.body}</p>
-                      <span className="cb-card-time">{u.date}</span>
-                    </article>
-                  ))}
-                </div>
-              </div>
+          {adminTab === 'members' ? (
+            <div className="cb-item-list">
+              <p className="cb-muted">
+                Share the join code <strong>{community.join_code}</strong> (plus the join password) to invite members.
+                Admins can promote members; there is no demote.
+              </p>
+              {members.map((m) => (
+                <article key={m.user_id} className="cb-queue-item">
+                  <div>
+                    <div className="cb-feed-topline">
+                      <strong>{m.email}</strong>
+                      <span className={`cb-role-pill cb-role-pill--${m.role}`}>{m.role === 'admin' ? 'Admin' : 'Member'}</span>
+                    </div>
+                    <span className="cb-card-time">Joined {timeAgo(m.joined_at)}</span>
+                  </div>
+                  {m.role === 'member' ? (
+                    <div className="cb-action-row">
+                      <button type="button" className="cb-button cb-button--secondary" onClick={() => void promote(m)}>
+                        Make admin
+                      </button>
+                    </div>
+                  ) : null}
+                </article>
+              ))}
             </div>
           ) : null}
         </>
       )}
     </section>
-  );
-}
-
-/** Shared inline composer used by both roles. */
-function ComposerCard(props: {
-  title: string;
-  titleValue: string;
-  bodyValue: string;
-  bodyLabel: string;
-  note: string;
-  onTitle: (v: string) => void;
-  onBody: (v: string) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-}): JSX.Element {
-  return (
-    <form
-      className="cb-composer"
-      onSubmit={(e) => {
-        e.preventDefault();
-        props.onSubmit();
-      }}
-    >
-      <h3 className="cb-comm-subhead">{props.title}</h3>
-      <div className="cb-note">{props.note}</div>
-      <label className="cb-field">
-        <span>Title</span>
-        <input className="cb-field-input" value={props.titleValue} onChange={(e) => props.onTitle(e.target.value)} placeholder="Short summary" />
-      </label>
-      <label className="cb-field">
-        <span>{props.bodyLabel}</span>
-        <textarea className="cb-field-input cb-field-input--textarea" value={props.bodyValue} onChange={(e) => props.onBody(e.target.value)} placeholder="Add a little detail..." />
-      </label>
-      <div className="cb-action-row">
-        <button type="submit" className="cb-button cb-button--primary">Post</button>
-        <button type="button" className="cb-button cb-button--secondary" onClick={props.onCancel}>Cancel</button>
-      </div>
-    </form>
   );
 }

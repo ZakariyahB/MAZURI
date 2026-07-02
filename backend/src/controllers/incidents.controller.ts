@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
 import { incidentModel } from '../models/incident.model';
+import { communityModel } from '../models/community.model';
 import { SEVERITIES } from '../config/constants';
+import { clusterReports, isAiConfigured } from '../services/ai/clustering.service';
 import { str, oneOf } from '../utils/validation';
-import { conflict, notFound } from '../utils/errors';
+import { AppError, conflict, notFound, paymentRequired } from '../utils/errors';
 
 export const incidentsController = {
   /** Members report incidents with a severity (RED/AMBER/GREEN). */
@@ -31,5 +33,18 @@ export const incidentsController = {
     if (incident.status === 'resolved') throw conflict('Incident is already resolved');
 
     res.json({ incident: await incidentModel.resolve(incidentId) });
+  },
+
+  /** Admin AI triage: cluster open reports by issue, ranked by urgency (Insights tier). */
+  async clusters(req: Request, res: Response): Promise<void> {
+    const community = await communityModel.findById(req.params.communityId);
+    if (!community) throw notFound('Community not found');
+    if (community.tier !== 'insights') {
+      throw paymentRequired('AI clustering is part of the Insights tier — upgrade to unlock it');
+    }
+    if (!isAiConfigured()) {
+      throw new AppError(503, 'AI clustering is not configured — set AI_API_KEY in .env');
+    }
+    res.json({ clusters: await clusterReports(req.params.communityId) });
   },
 };

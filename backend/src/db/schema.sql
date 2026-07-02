@@ -13,8 +13,13 @@ CREATE TABLE IF NOT EXISTS communities (
   name               TEXT NOT NULL,
   join_code          TEXT UNIQUE NOT NULL,
   join_password_hash TEXT NOT NULL,
+  -- Subscription tier: 'free' (core) or 'insights' (AI clustering + analytics).
+  tier               TEXT NOT NULL DEFAULT 'free' CHECK (tier IN ('free', 'insights')),
   created_at         TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Additive migration for databases created before the tier column existed.
+ALTER TABLE communities ADD COLUMN IF NOT EXISTS tier TEXT NOT NULL DEFAULT 'free';
 
 -- A user belongs to many communities; membership carries the per-community role.
 CREATE TABLE IF NOT EXISTS memberships (

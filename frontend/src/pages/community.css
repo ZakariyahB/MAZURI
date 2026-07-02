@@ -316,6 +316,47 @@
   margin-bottom: 0;
 }
 
+/* ── Live-data additions (shared under .cb-root so other pages can reuse) ── */
+.cb-root .cb-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1.2rem;
+  border: 1px solid rgba(16, 33, 29, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 14px 34px rgba(16, 33, 29, 0.08);
+  margin-bottom: 1.2rem;
+}
+.cb-root .cb-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1.4rem;
+}
+.cb-root .cb-form-error {
+  margin: 0;
+  color: #a4372f;
+  font-size: 0.92rem;
+}
+.cb-root .cb-rate-row {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+.cb-root .cb-rate-btn {
+  min-width: 2rem;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid rgba(16, 33, 29, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  font: inherit;
+}
+.cb-root .cb-rate-btn:hover {
+  background: #10211d;
+  color: #f6f3ea;
+}
+
 @media (max-width: 640px) {
   .cb-community .cb-role-toggle {
     width: 100%;

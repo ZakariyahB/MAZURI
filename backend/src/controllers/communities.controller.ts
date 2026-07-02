@@ -4,7 +4,9 @@ import { communityModel, toPublicCommunity } from '../models/community.model';
 import { membershipModel } from '../models/membership.model';
 import { hashSecret, verifySecret } from '../services/auth.service';
 import { computeLeaderboard } from '../services/leaderboard.service';
-import { str } from '../utils/validation';
+import { computeAnalytics } from '../services/analytics.service';
+import { TIERS } from '../config/constants';
+import { str, oneOf } from '../utils/validation';
 import { conflict, notFound } from '../utils/errors';
 
 export const communitiesController = {
@@ -68,5 +70,22 @@ export const communitiesController = {
   /** Cross-community leaderboard (compute-on-read). Any logged-in user. */
   async leaderboard(_req: Request, res: Response): Promise<void> {
     res.json({ leaderboard: await computeLeaderboard() });
+  },
+
+  /** Public accountability analytics ("% addressed within 30 days"). Members. */
+  async analytics(req: Request, res: Response): Promise<void> {
+    res.json({ analytics: await computeAnalytics(req.params.communityId) });
+  },
+
+  /**
+   * Switch subscription tier (admin). Billing is MOCKED — this flips the
+   * feature gate; a payment provider slots in front of it later. Downgrading
+   * locks paid features but never deletes data (read-only archive semantics).
+   */
+  async setSubscription(req: Request, res: Response): Promise<void> {
+    const tier = oneOf(req.body?.tier, 'tier', TIERS);
+    const community = await communityModel.setTier(req.params.communityId, tier);
+    if (!community) throw notFound('Community not found');
+    res.json({ community: toPublicCommunity(community), role: req.membership!.role });
   },
 };

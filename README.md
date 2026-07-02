@@ -196,9 +196,50 @@ Remaining risk is mostly **execution and storytelling**, not concept: make the A
 
 ---
 
-## 12. Local development (scaffold)
+## 12. Current progress & roadmap
 
-> This repo currently contains a **scaffold only** — directories, skeleton files, and config. No feature logic is implemented yet. Everything compiles and runs clean; features get built on top.
+*Snapshot as of July 2026. Legend: ✅ done · 🟡 partial · ⬜ not started.*
+
+### What's built
+
+**Backend** — Node + Express + TypeScript, raw SQL on `pg`, JWT bearer auth. The **free core tier is feature-complete** and the **Insights tier (AI clustering, accountability analytics, feature gating) is implemented.**
+
+- ✅ **Auth / users sign in** — email + password signup and login, bcrypt password hashing, JWT bearer tokens, `/api/auth/me`.
+- ✅ **Communities & multi-tenancy** — create a community (join code + join password), join by code, list "my communities", per-community roles (admin / member), promote member → admin.
+- ✅ **Suggestions** — post, list, one-vote-per-user upvotes, admin moderation (approve / reject).
+- ✅ **Incident reports** — private, admin-only, severity RED / AMBER / GREEN, resolve.
+- ✅ **Announcements (the news feed)** — admins post, members read.
+- ✅ **Posts** — LinkedIn-style community posts.
+- ✅ **Events** — proposals with 1–5 member ratings.
+- ✅ **Leaderboard** — weighted cross-community ranking (resolved-ratio, events, rating, activity).
+- ✅ **AI clustering + urgency triage (Insights tier)** — `clusterReports` groups a community's open reports into clusters of near-duplicates and ranks them on the Safety > Facilities > General ladder, via one structured-output call to the Anthropic Messages API (`claude-opus-4-8`, key in `AI_API_KEY`). Exposed at `GET …/incidents/clusters` (admin, Insights-gated). *pgvector stays provisioned for a future embeddings pipeline; at community scale a single LLM call clusters more accurately with no separate vector store.*
+- ✅ **Accountability analytics** — `GET …/analytics` computes the public "% of reports addressed within 30 days" metric (plus counts); surfaced in the community header.
+- ✅ **Subscription / feature gating** — per-community `tier` (`free` / `insights`); AI triage returns 402 on the free tier; `POST …/subscription` (admin) flips the tier. **Billing itself is mocked** — a payment provider slots in front of the gate later. Downgrading locks features, never deletes data.
+- ✅ **Seeded demo org** — `npm run db:seed` creates East London Mosque with realistic data: suggestions with votes, a moderation queue, three near-duplicate heating reports (the AI clustering demo), a resolved report inside the 30-day window, events, announcements. See §13 for the accounts.
+
+**Frontend** — React + TypeScript (Vite), standalone-first and embed-ready. **Fully wired to the backend API — the prototype seed data is gone.**
+
+- ✅ **Landing page.**
+- ✅ **Auth** — sign-up / sign-in call `/api/auth`, the JWT is stored (localStorage) and attached to the API client, and the session is restored on reload via `/api/auth/me`.
+- ✅ **My Communities** — live list, create community, join by code + password, and the cross-community leaderboard.
+- ✅ **Community view** — live tabbed member/admin workspace: suggestion feed + one-vote upvotes, private report composer (severity RED/AMBER/GREEN), events with 1–5 ratings on past events, a merged Updates feed (announcements + posts), admin moderation queue (approve/reject), report queue with resolve, **AI triage panel** (clusters + urgency, with an in-app Insights upgrade when on free tier), and member management (promote to admin). The real membership role gates the admin view.
+- ✅ **Embeddable widget** — `src/embed/` mounts the same `CoreApp` into any host element; `npm run build:embed` produces a self-contained `community-bridge.js` + `.css` (drop-in snippet in `src/embed/index.ts`).
+- ✅ **Deploy config** — Netlify (`netlify.toml`).
+
+> **Decided:** general **community posts** and **announcements** stay admin-only (the "announcements down" flow); ordinary members contribute by posting **suggestions** (public, upvotable) and **incident reports** (private to admins). We are not opening a free-form member post feed.
+
+### To-do / roadmap
+
+- ⬜ **Real billing** — Stripe (or similar) in front of the existing tier gate; needs a provider decision + keys. The gate, lock behaviour and upgrade UX already exist.
+- ⬜ **Embeddings pipeline (pgvector)** — swap the single-call LLM clustering for embed-and-cluster once report volume outgrows one context window; the extension is already enabled.
+- ⬜ **Announcement linking** — connect an announcement to the suggestion/report it resolves so the accountability loop shows in the feed; plus edit / delete / pin.
+- ⬜ **Network-tier onboarding flow** (can stay mocked for the pitch).
+
+---
+
+## 13. Local development
+
+> The **free core tier and the Insights tier are implemented and run end-to-end** — auth, communities, suggestions, reports, announcements, events, leaderboard, AI clustering + urgency triage, accountability analytics, and tier gating (billing mocked; see §12). Everything compiles and runs clean.
 
 ### Stack
 
@@ -222,7 +263,29 @@ This brings up three services:
 - **backend** — Express API at <http://localhost:4000> (health check: <http://localhost:4000/health> → `{ "status": "ok" }`).
 - **frontend** — Vite dev server at <http://localhost:5173>.
 
-Ports and credentials are all driven by `.env` (see `.env.example` for every variable, with comments).
+Ports and credentials are all driven by `.env` (see `.env.example` for every variable, with comments). To enable AI report clustering, set `AI_API_KEY` to an Anthropic API key (<https://console.anthropic.com/settings/keys>); everything else works without it.
+
+### Seed the demo org
+
+```sh
+cd backend && npm run db:seed     :: point DATABASE_URL at localhost when outside Docker
+```
+
+Creates **East London Mosque** (join code `ELM2026`, join password `welcome1`, Insights tier) with realistic data for the 30-second demo loop. Accounts (password `password123` for all): `imam@demo.local` (admin), `amina@demo.local`, `yusuf@demo.local`, `fatima@demo.local`.
+
+### Build the embeddable widget
+
+```sh
+cd frontend && npm run build:embed    :: emits dist-embed/community-bridge.{js,css}
+```
+
+Drop-in snippet for a host site (the host's origin must be in `CORS_ALLOWED_ORIGINS`):
+
+```html
+<link rel="stylesheet" href="/path/to/community-bridge.css">
+<div data-community-bridge data-api-base-url="https://api.your-deployment.example"></div>
+<script src="/path/to/community-bridge.js"></script>
+```
 
 ### Run a service directly (without Docker)
 
@@ -243,7 +306,7 @@ docker/     supporting docker config (postgres pgvector init)
 
 ---
 
-## 13. Frontend architecture — standalone-first, embed-ready
+## 14. Frontend architecture — standalone-first, embed-ready
 
 **Open decision (A vs B), kept open by design:** the frontend may ultimately ship as **(A) an embeddable widget** other communities drop into their existing sites, or **(B) our own standalone website**. See the Distribution row in §4 and the embed layer in §7 — this is not yet locked.
 
@@ -251,7 +314,7 @@ We are **building the standalone web app first** (simpler), but the code is stru
 
 - **`frontend/src/core/`** — the self-contained core app. It mounts into whatever container it's handed and styles **only its own subtree** (scoped `cb-` CSS, no `html`/`body`/global styling), so it makes no assumption that it owns the page. This is what runs in *both* modes.
 - **`frontend/src/standalone/`** — the standalone entry (path **B**). Mounts `core` as a full hosted page. `src/main.tsx` boots this today.
-- **`frontend/src/embed/`** — placeholder (path **A**). When we build the widget, it will mount the *same* `CoreApp` inside a host element / Shadow DOM — without touching `core` or `standalone`.
+- **`frontend/src/embed/`** — the widget shell (path **A**). Mounts the *same* `CoreApp` inside any host element (auto-mounts `[data-community-bridge]`), built as a self-contained IIFE via `npm run build:embed` — `core` and `standalone` were untouched, exactly as designed.
 - **`frontend/src/api/`** — a **token-based** API client with a **configurable base URL**, so the same client works on our own page or on a third-party domain.
 
 **Backend is built embed-ready from day one:** auth is **JWT bearer tokens (not session cookies**, which break inside third-party embeds), and **CORS is configurable** via `CORS_ALLOWED_ORIGINS`. If we go the embed route, each host community's domain gets added there (or it becomes a per-org allowlist).

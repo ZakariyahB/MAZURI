@@ -9,6 +9,8 @@ const router = Router({ mergeParams: true });
 
 router.post('/', requireMember, asyncHandler(incidentsController.create));
 router.get('/', requireAdmin, asyncHandler(incidentsController.list));
+// Static path before /:incidentId routes so it isn't shadowed.
+router.get('/clusters', requireAdmin, asyncHandler(incidentsController.clusters));
 router.post('/:incidentId/resolve', requireAdmin, asyncHandler(incidentsController.resolve));
 
 export default router;

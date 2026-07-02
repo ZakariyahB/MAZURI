@@ -36,3 +36,14 @@ export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
 
 export const EVENT_STATUSES = ['potential', 'confirmed'] as const;
 export type EventStatus = (typeof EVENT_STATUSES)[number];
+
+// Subscription tiers. Free = the adoption wedge; Insights = AI clustering,
+// urgency triage, and accountability analytics (locks on non-payment).
+export const TIERS = ['free', 'insights'] as const;
+export type Tier = (typeof TIERS)[number];
+
+// Model used for AI report clustering (Anthropic Messages API).
+export const AI_CLUSTERING_MODEL = 'claude-opus-4-8';
+
+// Window for the public accountability metric ("% addressed within N days").
+export const ACCOUNTABILITY_WINDOW_DAYS = 30;

@@ -6,6 +6,7 @@ node_modules/
 dist/
 build/
 **/dist/
+dist-embed/
 
 # Environment (never commit real secrets — .env.example is the template)
 .env

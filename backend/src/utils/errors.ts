@@ -10,6 +10,7 @@ export class AppError extends Error {
 }
 
 export const badRequest = (message = 'Bad Request') => new AppError(400, message);
+export const paymentRequired = (message = 'Payment Required') => new AppError(402, message);
 export const unauthorized = (message = 'Unauthorized') => new AppError(401, message);
 export const forbidden = (message = 'Forbidden') => new AppError(403, message);
 export const notFound = (message = 'Not Found') => new AppError(404, message);

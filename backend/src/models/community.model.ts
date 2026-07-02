@@ -1,10 +1,12 @@
 import { pool, query, type Executor } from '../config/db';
+import type { Tier } from '../config/constants';
 
 export interface Community {
   id: string;
   name: string;
   join_code: string;
   join_password_hash: string;
+  tier: Tier;
   created_at: string;
 }
 
@@ -13,6 +15,7 @@ export interface PublicCommunity {
   id: string;
   name: string;
   join_code: string;
+  tier: Tier;
   created_at: string;
 }
 
@@ -20,6 +23,7 @@ export const toPublicCommunity = (c: Community): PublicCommunity => ({
   id: c.id,
   name: c.name,
   join_code: c.join_code,
+  tier: c.tier,
   created_at: c.created_at,
 });
 
@@ -46,6 +50,15 @@ export const communityModel = {
 
   async findById(id: string): Promise<Community | null> {
     const { rows } = await query<Community>('SELECT * FROM communities WHERE id = $1', [id]);
+    return rows[0] ?? null;
+  },
+
+  /** Switch subscription tier (billing itself is mocked — see README §12). */
+  async setTier(id: string, tier: Tier): Promise<Community | null> {
+    const { rows } = await query<Community>(
+      'UPDATE communities SET tier = $2 WHERE id = $1 RETURNING *',
+      [id, tier],
+    );
     return rows[0] ?? null;
   },
 };

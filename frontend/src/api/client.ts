@@ -2,17 +2,31 @@ import type {
   Announcement,
   AuthResult,
   Community,
+  CommunityAnalytics,
   CommunityMember,
   CommunityWithRole,
   EventItem,
   Incident,
   LeaderboardEntry,
   Post,
+  ReportCluster,
   Role,
   Severity,
   Suggestion,
+  Tier,
   User,
 } from './types';
+
+/** API failure carrying the HTTP status, so the UI can branch (402 upgrade, 409 duplicate vote…). */
+export class ApiError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
 
 /**
  * API client. Token-based (JWT bearer) with a configurable base URL, so the
@@ -40,6 +54,8 @@ export interface ApiClient {
   leaderboard(): Promise<LeaderboardEntry[]>;
   listMembers(id: string): Promise<CommunityMember[]>;
   promoteToAdmin(id: string, userId: string): Promise<void>;
+  getAnalytics(id: string): Promise<CommunityAnalytics>;
+  setSubscription(id: string, tier: Tier): Promise<{ community: Community; role: Role }>;
 
   listSuggestions(id: string): Promise<Suggestion[]>;
   listSuggestionQueue(id: string): Promise<Suggestion[]>;
@@ -54,6 +70,7 @@ export interface ApiClient {
   createIncident(id: string, body: string, severity: Severity): Promise<Incident>;
   listIncidents(id: string): Promise<Incident[]>;
   resolveIncident(id: string, incidentId: string): Promise<Incident>;
+  getReportClusters(id: string): Promise<ReportCluster[]>;
 
   listEvents(id: string): Promise<EventItem[]>;
   createEvent(
@@ -88,7 +105,7 @@ export function createApiClient(baseUrl: string): ApiClient {
     if (!res.ok) {
       const message =
         (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
-      throw new Error(message);
+      throw new ApiError(res.status, message);
     }
     return data as T;
   }
@@ -126,6 +143,12 @@ export function createApiClient(baseUrl: string): ApiClient {
       request<{ members: CommunityMember[] }>('GET', `${c(id)}/members`).then((r) => r.members),
     promoteToAdmin: (id, userId) =>
       request<unknown>('POST', `${c(id)}/admins`, { user_id: userId }).then(() => undefined),
+    getAnalytics: (id) =>
+      request<{ analytics: CommunityAnalytics }>('GET', `${c(id)}/analytics`).then(
+        (r) => r.analytics,
+      ),
+    setSubscription: (id, tier) =>
+      request<{ community: Community; role: Role }>('POST', `${c(id)}/subscription`, { tier }),
 
     listSuggestions: (id) =>
       request<{ suggestions: Suggestion[] }>('GET', `${c(id)}/suggestions`).then(
@@ -158,6 +181,10 @@ export function createApiClient(baseUrl: string): ApiClient {
     resolveIncident: (id, incidentId) =>
       request<{ incident: Incident }>('POST', `${c(id)}/incidents/${incidentId}/resolve`).then(
         (r) => r.incident,
+      ),
+    getReportClusters: (id) =>
+      request<{ clusters: ReportCluster[] }>('GET', `${c(id)}/incidents/clusters`).then(
+        (r) => r.clusters,
       ),
 
     listEvents: (id) =>
