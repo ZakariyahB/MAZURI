@@ -8,14 +8,25 @@ import { env } from './env';
  * clustering can use embeddings later — no separate vector store.
  *
  * Managed Postgres (Supabase in production) requires TLS. We enable SSL when the
- * connection string asks for it (`sslmode=require`, as Supabase's string does) or
- * when DATABASE_SSL=true is set — and never for the local Docker/dev database.
+ * connection string asks for it (any `sslmode=`, as Supabase's string does), when
+ * the host is a managed provider, or when DATABASE_SSL=true — and never for the
+ * local Docker/dev database.
  */
 const useSsl =
-  /sslmode=require/i.test(env.databaseUrl) || process.env.DATABASE_SSL === 'true';
+  /sslmode=/i.test(env.databaseUrl) ||
+  /\b(supabase|neon|render|amazonaws|railway)\b/i.test(env.databaseUrl) ||
+  process.env.DATABASE_SSL === 'true';
+
+// node-postgres lets the connection string's `sslmode` override the explicit
+// `ssl` option below, which re-enables cert verification and breaks on Supabase's
+// self-signed chain. Strip `sslmode` from the URL so our ssl config is the sole
+// authority over TLS behaviour.
+const connectionString = env.databaseUrl.replace(/([?&])sslmode=[^&]*(&|$)/i, (_m, sep, tail) =>
+  sep === '?' && tail === '&' ? '?' : sep === '?' ? '' : tail,
+);
 
 export const pool = new Pool({
-  connectionString: env.databaseUrl,
+  connectionString,
   // Supabase presents a certificate chain that isn't in the container's trust
   // store; rejectUnauthorized:false keeps TLS on the wire without pinning it.
   ssl: useSsl ? { rejectUnauthorized: false } : undefined,
