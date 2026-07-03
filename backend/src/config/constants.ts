@@ -37,6 +37,11 @@ export type IncidentStatus = (typeof INCIDENT_STATUSES)[number];
 export const EVENT_STATUSES = ['potential', 'confirmed'] as const;
 export type EventStatus = (typeof EVENT_STATUSES)[number];
 
+// Event content type: 'proposed' events are floated for interest (members
+// up/downvote); 'past' events already happened (members rate 1-5).
+export const EVENT_KINDS = ['proposed', 'past'] as const;
+export type EventKind = (typeof EVENT_KINDS)[number];
+
 // Subscription tiers. Free = the adoption wedge; Insights = AI clustering,
 // urgency triage, and accountability analytics (locks on non-payment).
 export const TIERS = ['free', 'insights'] as const;

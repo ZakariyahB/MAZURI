@@ -10,6 +10,7 @@ import type {
   LeaderboardEntry,
   Post,
   ReportCluster,
+  EventKind,
   Role,
   Severity,
   Suggestion,
@@ -75,12 +76,22 @@ export interface ApiClient {
   listEvents(id: string): Promise<EventItem[]>;
   createEvent(
     id: string,
-    input: { title: string; description: string; event_date: string },
+    input: { title: string; description: string; event_date: string; kind: EventKind },
   ): Promise<EventItem>;
   rateEvent(id: string, eventId: string, rating: number): Promise<void>;
+  voteEvent(id: string, eventId: string, direction: 'up' | 'down'): Promise<EventItem>;
 
   listAnnouncements(id: string): Promise<Announcement[]>;
-  createAnnouncement(id: string, body: string): Promise<Announcement>;
+  listMyAnnouncements(id: string): Promise<Announcement[]>;
+  createAnnouncement(id: string, body: string, imageUrls?: string[]): Promise<Announcement>;
+  updateAnnouncement(
+    id: string,
+    announcementId: string,
+    body: string,
+    imageUrls?: string[],
+  ): Promise<Announcement>;
+  /** Uploads an image and returns its public URL (admin only). */
+  uploadImage(id: string, file: File): Promise<string>;
 
   listPosts(id: string): Promise<Post[]>;
   createPost(id: string, body: string): Promise<Post>;
@@ -102,6 +113,23 @@ export function createApiClient(baseUrl: string): ApiClient {
     const text = await res.text();
     const data: unknown = text ? JSON.parse(text) : null;
 
+    if (!res.ok) {
+      const message =
+        (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
+      throw new ApiError(res.status, message);
+    }
+    return data as T;
+  }
+
+  // Multipart upload — do NOT set Content-Type; the browser adds the multipart
+  // boundary itself. Auth still travels in the Authorization header.
+  async function upload<T>(path: string, form: FormData): Promise<T> {
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(`${baseUrl}${path}`, { method: 'POST', headers, body: form });
+    const text = await res.text();
+    const data: unknown = text ? JSON.parse(text) : null;
     if (!res.ok) {
       const message =
         (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
@@ -195,15 +223,35 @@ export function createApiClient(baseUrl: string): ApiClient {
       request<unknown>('POST', `${c(id)}/events/${eventId}/rate`, { rating }).then(
         () => undefined,
       ),
+    voteEvent: (id, eventId, direction) =>
+      request<{ event: EventItem }>('POST', `${c(id)}/events/${eventId}/vote`, { direction }).then(
+        (r) => r.event,
+      ),
 
     listAnnouncements: (id) =>
       request<{ announcements: Announcement[] }>('GET', `${c(id)}/announcements`).then(
         (r) => r.announcements,
       ),
-    createAnnouncement: (id, body) =>
-      request<{ announcement: Announcement }>('POST', `${c(id)}/announcements`, { body }).then(
-        (r) => r.announcement,
+    listMyAnnouncements: (id) =>
+      request<{ announcements: Announcement[] }>('GET', `${c(id)}/announcements/mine`).then(
+        (r) => r.announcements,
       ),
+    createAnnouncement: (id, body, imageUrls) =>
+      request<{ announcement: Announcement }>('POST', `${c(id)}/announcements`, {
+        body,
+        image_urls: imageUrls,
+      }).then((r) => r.announcement),
+    updateAnnouncement: (id, announcementId, body, imageUrls) =>
+      request<{ announcement: Announcement }>(
+        'PUT',
+        `${c(id)}/announcements/${announcementId}`,
+        { body, image_urls: imageUrls },
+      ).then((r) => r.announcement),
+    uploadImage: (id, file) => {
+      const form = new FormData();
+      form.append('image', file);
+      return upload<{ url: string }>(`${c(id)}/uploads/image`, form).then((r) => r.url);
+    },
 
     listPosts: (id) => request<{ posts: Post[] }>('GET', `${c(id)}/posts`).then((r) => r.posts),
     createPost: (id, body) =>

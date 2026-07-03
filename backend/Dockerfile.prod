@@ -1,0 +1,21 @@
+# Community Bridge API — production image (used by Railway).
+# Multi-stage: install + compile TypeScript, then ship a slim runtime with only
+# production dependencies and the compiled dist/.
+FROM node:20-alpine AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine AS runtime
+WORKDIR /app
+ENV NODE_ENV=production
+COPY package*.json ./
+RUN npm ci --omit=dev
+# Compiled JS and the SQL schema (read at runtime by the migration step on boot).
+COPY --from=build /app/dist ./dist
+
+# Railway injects PORT; the app reads it (defaults to 4000).
+EXPOSE 4000
+CMD ["node", "dist/index.js"]

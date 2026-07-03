@@ -27,6 +27,16 @@ export function errorHandler(
     return;
   }
 
+  // Multer upload errors (e.g. file too large) → 400 rather than a server error.
+  if (err instanceof Error && err.name === 'MulterError') {
+    const message =
+      (err as { code?: string }).code === 'LIMIT_FILE_SIZE'
+        ? 'Image is too large — 5 MB maximum'
+        : `Upload error: ${err.message}`;
+    res.status(400).json({ error: message });
+    return;
+  }
+
   console.error(err);
   const message = err instanceof Error ? err.message : 'Internal Server Error';
   res.status(500).json({ error: message });

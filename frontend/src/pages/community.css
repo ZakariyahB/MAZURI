@@ -357,6 +357,27 @@
   color: #f6f3ea;
 }
 
+/* Up/down voting on proposed events. */
+.cb-root .cb-event-vote {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+/* Images attached to announcements in the Updates feed. */
+.cb-root .cb-update-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.6rem 0 0.2rem;
+}
+.cb-root .cb-update-image {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 33, 29, 0.1);
+  object-fit: cover;
+}
+
 @media (max-width: 640px) {
   .cb-community .cb-role-toggle {
     width: 100%;

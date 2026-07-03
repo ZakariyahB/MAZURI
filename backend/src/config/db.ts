@@ -6,8 +6,20 @@ import { env } from './env';
  *
  * pgvector lives in this same database (see docker/postgres/init.sql) so report
  * clustering can use embeddings later — no separate vector store.
+ *
+ * Managed Postgres (Supabase in production) requires TLS. We enable SSL when the
+ * connection string asks for it (`sslmode=require`, as Supabase's string does) or
+ * when DATABASE_SSL=true is set — and never for the local Docker/dev database.
  */
-export const pool = new Pool({ connectionString: env.databaseUrl });
+const useSsl =
+  /sslmode=require/i.test(env.databaseUrl) || process.env.DATABASE_SSL === 'true';
+
+export const pool = new Pool({
+  connectionString: env.databaseUrl,
+  // Supabase presents a certificate chain that isn't in the container's trust
+  // store; rejectUnauthorized:false keeps TLS on the wire without pinning it.
+  ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+});
 
 /** Anything that can run a query — the pool, or a client inside a transaction. */
 export type Executor = Pool | PoolClient;

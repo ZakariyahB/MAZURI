@@ -122,12 +122,12 @@ async function seed(): Promise<void> {
       );
     }
 
-    // Events — one past (rateable), one upcoming proposal.
+    // Past event (rateable) — kind 'past', with member ratings.
     const {
       rows: [{ id: iftar }],
     } = await client.query<{ id: string }>(
-      `INSERT INTO events (community_id, title, description, event_date, status, created_at)
-       VALUES ($1, $2, $3, $4, 'confirmed', $5) RETURNING id`,
+      `INSERT INTO events (community_id, title, description, event_date, status, kind, created_at)
+       VALUES ($1, $2, $3, $4, 'confirmed', 'past', $5) RETURNING id`,
       [elm, 'Community Iftar', 'Shared iftar in the main hall — all welcome.', daysAgo(10), daysAgo(30)],
     );
     for (const [user, rating] of [
@@ -140,11 +140,25 @@ async function seed(): Promise<void> {
         [iftar, user, rating, daysAgo(9)],
       );
     }
-    await client.query(
-      `INSERT INTO events (community_id, title, description, event_date, status, created_at)
-       VALUES ($1, $2, $3, $4, 'potential', $5)`,
+
+    // Proposed event — kind 'proposed', with up/down votes gauging interest.
+    const {
+      rows: [{ id: football }],
+    } = await client.query<{ id: string }>(
+      `INSERT INTO events (community_id, title, description, event_date, status, kind, created_at)
+       VALUES ($1, $2, $3, $4, 'potential', 'proposed', $5) RETURNING id`,
       [elm, 'Youth football tournament', 'Proposed five-a-side tournament at Mile End park.', daysAhead(14), daysAgo(5)],
     );
+    for (const [user, vote] of [
+      [amina, 1],
+      [yusuf, 1],
+      [fatima, -1],
+    ] as const) {
+      await client.query(
+        'INSERT INTO event_votes (event_id, user_id, vote, created_at) VALUES ($1, $2, $3, $4)',
+        [football, user, vote, daysAgo(4)],
+      );
+    }
 
     // Announcements — the "loop closed" posts — and a community post.
     for (const [body, ageDays] of [

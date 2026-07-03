@@ -43,6 +43,14 @@ export const env = {
 
   // Placeholder for the embeddings/LLM provider key used by report clustering.
   aiApiKey: process.env.AI_API_KEY ?? '',
+
+  // Supabase Storage — where uploaded announcement images live. The backend
+  // uploads with the SERVICE ROLE key (never exposed to the browser). Leave the
+  // URL/key blank to run without image uploads; the upload endpoint returns 503.
+  supabaseUrl: process.env.SUPABASE_URL ?? '',
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+  // Storage bucket that holds uploaded images (create it as a PUBLIC bucket).
+  supabaseStorageBucket: process.env.SUPABASE_STORAGE_BUCKET ?? 'announcement-images',
 } as const;
 
 export type Env = typeof env;

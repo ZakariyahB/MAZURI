@@ -224,7 +224,7 @@ Remaining risk is mostly **execution and storytelling**, not concept: make the A
 - ✅ **My Communities** — live list, create community, join by code + password, and the cross-community leaderboard.
 - ✅ **Community view** — live tabbed member/admin workspace: suggestion feed + one-vote upvotes, private report composer (severity RED/AMBER/GREEN), events with 1–5 ratings on past events, a merged Updates feed (announcements + posts), admin moderation queue (approve/reject), report queue with resolve, **AI triage panel** (clusters + urgency, with an in-app Insights upgrade when on free tier), and member management (promote to admin). The real membership role gates the admin view.
 - ✅ **Embeddable widget** — `src/embed/` mounts the same `CoreApp` into any host element; `npm run build:embed` produces a self-contained `community-bridge.js` + `.css` (drop-in snippet in `src/embed/index.ts`).
-- ✅ **Deploy config** — Netlify (`netlify.toml`).
+- ✅ **Deploy config** — frontend on Vercel (`frontend/vercel.json`), backend on Railway (`backend/Dockerfile.prod` + `backend/railway.json`), database + media on Supabase.
 
 > **Decided:** general **community posts** and **announcements** stay admin-only (the "announcements down" flow); ordinary members contribute by posting **suggestions** (public, upvotable) and **incident reports** (private to admins). We are not opening a free-form member post feed.
 

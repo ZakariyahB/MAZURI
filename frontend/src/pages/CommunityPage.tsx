@@ -24,9 +24,15 @@ type CommunityPageProps = {
 };
 
 type ViewAs = 'member' | 'admin';
-type MemberTab = 'suggestions' | 'events' | 'updates';
-type AdminTab = 'suggestions' | 'reports' | 'members';
-type ComposerKind = 'suggestion' | 'report' | 'event' | 'announcement' | 'post';
+type MemberTab = 'suggestions' | 'proposed' | 'events' | 'updates';
+type AdminTab = 'suggestions' | 'reports' | 'announcements' | 'members';
+type ComposerKind =
+  | 'suggestion'
+  | 'report'
+  | 'proposed_event'
+  | 'past_event'
+  | 'announcement'
+  | 'post';
 
 const SEVERITY_PILL: Record<Severity, string> = {
   RED: 'cb-pill--red',
@@ -107,6 +113,7 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [events, setEvents] = useState<EventItem[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [myAnnouncements, setMyAnnouncements] = useState<Announcement[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [members, setMembers] = useState<CommunityMember[]>([]);
   const [analytics, setAnalytics] = useState<CommunityAnalytics | null>(null);
@@ -120,6 +127,8 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
   // One-vote / one-rating state for this session; reconciled against the API's 409s.
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [ratedIds, setRatedIds] = useState<Set<string>>(new Set());
+  // Which way the member voted on each proposed event this session.
+  const [eventVotes, setEventVotes] = useState<Map<string, 'up' | 'down'>>(new Map());
 
   // AI triage (Insights tier).
   const [clusters, setClusters] = useState<ReportCluster[] | null>(null);
@@ -133,6 +142,9 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
   const [draftTitle, setDraftTitle] = useState('');
   const [draftDate, setDraftDate] = useState('');
   const [draftSeverity, setDraftSeverity] = useState<Severity>('AMBER');
+  const [draftImage, setDraftImage] = useState<File | null>(null);
+  // When set, the announcement composer edits this announcement instead of creating.
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [composerError, setComposerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -155,15 +167,17 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
         setAnalytics(stats);
 
         if (isAdmin) {
-          const [pending, incs, membs] = await Promise.all([
+          const [pending, incs, membs, mine] = await Promise.all([
             api.listSuggestionQueue(id),
             api.listIncidents(id),
             api.listMembers(id),
+            api.listMyAnnouncements(id),
           ]);
           if (cancelled) return;
           setQueue(pending);
           setIncidents(incs);
           setMembers(membs);
+          setMyAnnouncements(mine);
         }
       } catch (err) {
         if (!cancelled) setLoadError((err as Error).message);
@@ -185,13 +199,28 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
     setDraftTitle('');
     setDraftDate('');
     setDraftSeverity('AMBER');
+    setDraftImage(null);
+    setEditingAnnouncementId(null);
     setComposerError(null);
   };
 
   const openComposer = (kind: ComposerKind): void => {
     setNotice(null);
     setComposerError(null);
+    setEditingAnnouncementId(null);
+    setDraftBody('');
+    setDraftImage(null);
     setComposer(kind);
+  };
+
+  // Opens the announcement composer pre-filled to edit an existing announcement.
+  const openAnnouncementEditor = (announcement: Announcement): void => {
+    setNotice(null);
+    setComposerError(null);
+    setEditingAnnouncementId(announcement.id);
+    setDraftBody(announcement.body);
+    setDraftImage(null);
+    setComposer('announcement');
   };
 
   const submitComposer = async (): Promise<void> => {
@@ -207,16 +236,26 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
         setNotice('Report sent — only admins can see it.');
         if (isAdmin) setIncidents((prev) => [created, ...prev]);
         refreshAnalytics();
-      } else if (composer === 'event') {
+      } else if (composer === 'proposed_event' || composer === 'past_event') {
         const created = await api.createEvent(id, {
           title: draftTitle,
           description: draftBody,
           event_date: draftDate,
+          kind: composer === 'proposed_event' ? 'proposed' : 'past',
         });
         setEvents((prev) => [created, ...prev]);
       } else if (composer === 'announcement') {
-        const created = await api.createAnnouncement(id, draftBody);
-        setAnnouncements((prev) => [created, ...prev]);
+        // Upload a newly attached image first (if any), then create or update.
+        const uploaded = draftImage ? [await api.uploadImage(id, draftImage)] : undefined;
+        if (editingAnnouncementId) {
+          const updated = await api.updateAnnouncement(id, editingAnnouncementId, draftBody, uploaded);
+          setAnnouncements((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+          setMyAnnouncements((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+        } else {
+          const created = await api.createAnnouncement(id, draftBody, uploaded ?? []);
+          setAnnouncements((prev) => [created, ...prev]);
+          setMyAnnouncements((prev) => [created, ...prev]);
+        }
       } else if (composer === 'post') {
         const created = await api.createPost(id, draftBody);
         setPosts((prev) => [created, ...prev]);
@@ -256,6 +295,17 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
       } else {
         setNotice((err as Error).message);
       }
+    }
+  };
+
+  const voteEvent = async (event: EventItem, direction: 'up' | 'down'): Promise<void> => {
+    if (eventVotes.get(event.id) === direction) return;
+    try {
+      const updated = await api.voteEvent(id, event.id, direction);
+      setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+      setEventVotes((prev) => new Map(prev).set(event.id, direction));
+    } catch (err) {
+      setNotice((err as Error).message);
     }
   };
 
@@ -327,6 +377,9 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
 
   const incidentById = new Map(incidents.map((r) => [r.id, r]));
   const openIncidents = incidents.filter((r) => r.status === 'open');
+  const proposedEvents = events.filter((e) => e.kind === 'proposed');
+  const pastEvents = events.filter((e) => e.kind === 'past');
+  const isEventComposer = composer === 'proposed_event' || composer === 'past_event';
 
   const composerMeta: Record<ComposerKind, { title: string; note: string; bodyLabel: string }> = {
     suggestion: {
@@ -339,14 +392,19 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
       note: 'Problem reports are private — only admins can see them.',
       bodyLabel: 'What’s the problem?',
     },
-    event: {
+    proposed_event: {
       title: 'Propose an event',
-      note: 'Members can rate the event once it has taken place.',
+      note: 'Proposed events appear in the members’ Proposed Events tab, where they upvote or downvote to gauge interest.',
+      bodyLabel: 'Description',
+    },
+    past_event: {
+      title: 'Add a past event',
+      note: 'Past events appear in the members’ Events tab, where members who attended can rate them 1–5.',
       bodyLabel: 'Description',
     },
     announcement: {
-      title: 'Post an announcement',
-      note: 'Announcements appear in every member’s Updates tab — use them to close the loop.',
+      title: editingAnnouncementId ? 'Edit announcement' : 'Post an announcement',
+      note: 'Announcements appear in every member’s Updates tab — use them to close the loop. You can attach an image.',
       bodyLabel: 'Announcement',
     },
     post: {
@@ -368,7 +426,7 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
         <h3 className="cb-comm-subhead">{composerMeta[composer].title}</h3>
         <div className="cb-note">{composerMeta[composer].note}</div>
 
-        {composer === 'event' ? (
+        {isEventComposer ? (
           <>
             <label className="cb-field">
               <span>Title</span>
@@ -381,7 +439,7 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
               />
             </label>
             <label className="cb-field">
-              <span>Date &amp; time</span>
+              <span>{composer === 'past_event' ? 'When it took place' : 'Proposed date & time'}</span>
               <input
                 className="cb-field-input"
                 type="datetime-local"
@@ -415,9 +473,24 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
             value={draftBody}
             onChange={(e) => setDraftBody(e.target.value)}
             placeholder="Add a little detail..."
-            required={composer !== 'event'}
+            required={!isEventComposer}
           />
         </label>
+
+        {composer === 'announcement' ? (
+          <label className="cb-field">
+            <span>Image (optional)</span>
+            <input
+              className="cb-field-input"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={(e) => setDraftImage(e.target.files?.[0] ?? null)}
+            />
+            {editingAnnouncementId && !draftImage ? (
+              <span className="cb-note">Leave empty to keep the current image.</span>
+            ) : null}
+          </label>
+        ) : null}
 
         {composerError ? (
           <p className="cb-form-error" role="alert">
@@ -427,7 +500,7 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
 
         <div className="cb-action-row">
           <button type="submit" className="cb-button cb-button--primary" disabled={submitting}>
-            {submitting ? 'Posting…' : 'Post'}
+            {submitting ? 'Saving…' : editingAnnouncementId ? 'Save changes' : 'Post'}
           </button>
           <button type="button" className="cb-button cb-button--secondary" onClick={closeComposer}>
             Cancel
@@ -450,16 +523,16 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
     <PostMenu
       label="Post"
       options={[
-        { label: 'Propose an event', icon: 'ti-calendar-plus', onSelect: () => openComposer('event') },
+        { label: 'Propose an event', icon: 'ti-calendar-plus', onSelect: () => openComposer('proposed_event') },
+        { label: 'Add past event', icon: 'ti-calendar-check', onSelect: () => openComposer('past_event') },
         { label: 'Post announcement', icon: 'ti-speakerphone', onSelect: () => openComposer('announcement') },
         { label: 'Community post', icon: 'ti-notes', onSelect: () => openComposer('post') },
       ]}
     />
   );
 
+  // Past events: members who attended rate them 1–5.
   const eventRating = (event: EventItem): JSX.Element => {
-    const isPast = new Date(event.event_date).getTime() <= Date.now();
-    if (!isPast) return <span className="cb-tag cb-tag--notice">Upcoming</span>;
     if (ratedIds.has(event.id)) return <span className="cb-tag cb-tag--done">Rated — thanks!</span>;
     return (
       <span className="cb-rate-row" aria-label={`Rate ${event.title}`}>
@@ -468,6 +541,29 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
             {n}
           </button>
         ))}
+      </span>
+    );
+  };
+
+  // Proposed events: members upvote/downvote to signal interest.
+  const eventVoteRow = (event: EventItem): JSX.Element => {
+    const mine = eventVotes.get(event.id);
+    return (
+      <span className="cb-event-vote" aria-label={`Vote on ${event.title}`}>
+        <button
+          type="button"
+          className={mine === 'up' ? 'cb-upvote cb-upvote--voted' : 'cb-upvote'}
+          onClick={() => void voteEvent(event, 'up')}
+        >
+          <i className="ti ti-arrow-big-up" aria-hidden="true" /> {event.upvotes}
+        </button>
+        <button
+          type="button"
+          className={mine === 'down' ? 'cb-upvote cb-upvote--voted' : 'cb-upvote'}
+          onClick={() => void voteEvent(event, 'down')}
+        >
+          <i className="ti ti-arrow-big-down" aria-hidden="true" /> {event.downvotes}
+        </button>
       </span>
     );
   };
@@ -545,6 +641,9 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
               <button type="button" className={memberTab === 'suggestions' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setMemberTab('suggestions')}>
                 Suggestions
               </button>
+              <button type="button" className={memberTab === 'proposed' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setMemberTab('proposed')}>
+                Proposed Events
+              </button>
               <button type="button" className={memberTab === 'events' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setMemberTab('events')}>
                 Events
               </button>
@@ -581,11 +680,30 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
             </div>
           ) : null}
 
+          {memberTab === 'proposed' ? (
+            <div className="cb-item-list">
+              <p className="cb-muted">Upvote events you’d attend and downvote ones you wouldn’t — it helps admins gauge interest.</p>
+              {proposedEvents.length === 0 ? <p className="cb-muted">No proposed events yet.</p> : null}
+              {proposedEvents.map((e) => (
+                <article key={e.id} className="cb-event-item">
+                  <div>
+                    <strong>{e.title}</strong>
+                    <p>
+                      {e.description ? `${e.description} · ` : ''}
+                      {formatDate(e.event_date)}
+                    </p>
+                  </div>
+                  <div className="cb-event-meta">{eventVoteRow(e)}</div>
+                </article>
+              ))}
+            </div>
+          ) : null}
+
           {memberTab === 'events' ? (
             <div className="cb-item-list">
-              <p className="cb-muted">Rate events you attended (1–5) — upcoming ones are marked.</p>
-              {events.length === 0 ? <p className="cb-muted">No events yet.</p> : null}
-              {events.map((e) => (
+              <p className="cb-muted">Rate past events you attended (1–5).</p>
+              {pastEvents.length === 0 ? <p className="cb-muted">No past events yet.</p> : null}
+              {pastEvents.map((e) => (
                 <article key={e.id} className="cb-event-item">
                   <div>
                     <strong>{e.title}</strong>
@@ -611,7 +729,17 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
                       {u.kind === 'announcement' ? 'Announcement' : 'Post'}
                     </span>
                   </div>
-                  <span className="cb-card-time">{timeAgo(u.created_at)}</span>
+                  {u.kind === 'announcement' && u.images.length > 0 ? (
+                    <div className="cb-update-images">
+                      {u.images.map((src) => (
+                        <img key={src} className="cb-update-image" src={src} alt="" loading="lazy" />
+                      ))}
+                    </div>
+                  ) : null}
+                  <span className="cb-card-time">
+                    {timeAgo(u.created_at)}
+                    {u.kind === 'announcement' && u.edited_at ? ' · Edited' : ''}
+                  </span>
                 </article>
               ))}
             </div>
@@ -628,6 +756,9 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
               <button type="button" className={adminTab === 'reports' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('reports')}>
                 Reports{openIncidents.length > 0 ? ` (${openIncidents.length})` : ''}
               </button>
+              <button type="button" className={adminTab === 'announcements' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('announcements')}>
+                Announcements
+              </button>
               <button type="button" className={adminTab === 'members' ? 'cb-tab cb-tab--active' : 'cb-tab'} onClick={() => setAdminTab('members')}>
                 Members
               </button>
@@ -636,7 +767,7 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
             {adminPostMenu}
           </div>
 
-          {composer === 'event' || composer === 'announcement' || composer === 'post' ? composerCard : null}
+          {isEventComposer || composer === 'announcement' || composer === 'post' ? composerCard : null}
 
           {adminTab === 'suggestions' ? (
             <>
@@ -768,6 +899,41 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
                       ) : (
                         <span className="cb-tag cb-tag--done">Resolved</span>
                       )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : null}
+
+          {adminTab === 'announcements' ? (
+            <>
+              <h3 className="cb-comm-subhead">Your announcements</h3>
+              <p className="cb-muted">Announcements you’ve posted. Edit any of them — members see an “Edited” note.</p>
+              <div className="cb-item-list">
+                {myAnnouncements.length === 0 ? (
+                  <p className="cb-muted">You haven’t posted any announcements yet.</p>
+                ) : null}
+                {myAnnouncements.map((a) => (
+                  <article key={a.id} className="cb-queue-item">
+                    <div>
+                      <div className="cb-feed-topline">
+                        <strong>{a.body}</strong>
+                        {a.edited_at ? <span className="cb-tag cb-tag--notice">Edited</span> : null}
+                      </div>
+                      {a.images.length > 0 ? (
+                        <div className="cb-update-images">
+                          {a.images.map((src) => (
+                            <img key={src} className="cb-update-image" src={src} alt="" loading="lazy" />
+                          ))}
+                        </div>
+                      ) : null}
+                      <span className="cb-card-time">{timeAgo(a.created_at)}</span>
+                    </div>
+                    <div className="cb-action-row">
+                      <button type="button" className="cb-button cb-button--secondary" onClick={() => openAnnouncementEditor(a)}>
+                        Edit
+                      </button>
                     </div>
                   </article>
                 ))}

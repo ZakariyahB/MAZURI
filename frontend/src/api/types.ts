@@ -5,6 +5,7 @@ export type Severity = 'RED' | 'AMBER' | 'GREEN';
 export type SuggestionStatus = 'pending' | 'approved' | 'rejected';
 export type IncidentStatus = 'open' | 'resolved';
 export type EventStatus = 'potential' | 'confirmed';
+export type EventKind = 'proposed' | 'past';
 export type Tier = 'free' | 'insights';
 export type Urgency = 'safety' | 'facilities' | 'general';
 
@@ -62,6 +63,9 @@ export interface EventItem {
   description: string;
   event_date: string;
   status: EventStatus;
+  kind: EventKind;
+  upvotes: number;
+  downvotes: number;
   created_at: string;
 }
 
@@ -70,6 +74,10 @@ export interface Announcement {
   community_id: string;
   author_id: string;
   body: string;
+  /** Public URLs of attached images (usually 0 or 1). */
+  images: string[];
+  /** Edit timestamp, or null if never edited. */
+  edited_at: string | null;
   created_at: string;
 }
 

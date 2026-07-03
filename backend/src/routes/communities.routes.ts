@@ -8,6 +8,7 @@ import incidentsRoutes from './incidents.routes';
 import eventsRoutes from './events.routes';
 import announcementsRoutes from './announcements.routes';
 import postsRoutes from './posts.routes';
+import uploadsRoutes from './uploads.routes';
 
 // Mounted at /api/communities (behind requireAuth).
 const router = Router();
@@ -52,5 +53,6 @@ router.use('/:communityId/incidents', loadMembership, incidentsRoutes);
 router.use('/:communityId/events', loadMembership, eventsRoutes);
 router.use('/:communityId/announcements', loadMembership, announcementsRoutes);
 router.use('/:communityId/posts', loadMembership, postsRoutes);
+router.use('/:communityId/uploads', loadMembership, uploadsRoutes);
 
 export default router;
