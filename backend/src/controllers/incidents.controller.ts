@@ -5,6 +5,7 @@ import { SEVERITIES } from '../config/constants';
 import { clusterReports, isAiConfigured } from '../services/ai/clustering.service';
 import { str, oneOf } from '../utils/validation';
 import { AppError, conflict, notFound, paymentRequired } from '../utils/errors';
+import { loadInCommunity } from '../utils/loadInCommunity';
 
 export const incidentsController = {
   /** Members report incidents with a severity (RED/AMBER/GREEN). */
@@ -28,8 +29,7 @@ export const incidentsController = {
   /** Admin marks an incident resolved. */
   async resolve(req: Request, res: Response): Promise<void> {
     const { communityId, incidentId } = req.params;
-    const incident = await incidentModel.findById(incidentId);
-    if (!incident || incident.community_id !== communityId) throw notFound('Incident not found');
+    const incident = await loadInCommunity(incidentModel, incidentId, communityId, 'Incident');
     if (incident.status === 'resolved') throw conflict('Incident is already resolved');
 
     res.json({ incident: await incidentModel.resolve(incidentId) });

@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import { AppError } from '../utils/errors';
+import { isUniqueViolation } from '../config/db';
 
 /** 404 handler for unmatched routes. Register after all routes. */
 export function notFound(_req: Request, res: Response): void {
@@ -22,7 +23,7 @@ export function errorHandler(
   }
 
   // Postgres unique-violation → 409.
-  if (typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505') {
+  if (isUniqueViolation(err)) {
     res.status(409).json({ error: 'Resource already exists' });
     return;
   }

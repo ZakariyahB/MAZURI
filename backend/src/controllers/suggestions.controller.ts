@@ -1,17 +1,9 @@
 import type { Request, Response } from 'express';
-import { withTransaction } from '../config/db';
+import { withTransaction, isUniqueViolation } from '../config/db';
 import { suggestionModel } from '../models/suggestion.model';
 import { str, oneOf } from '../utils/validation';
-import { conflict, notFound } from '../utils/errors';
-
-/** Loads a suggestion and asserts it belongs to the route's community. */
-async function loadInCommunity(suggestionId: string, communityId: string) {
-  const suggestion = await suggestionModel.findById(suggestionId);
-  if (!suggestion || suggestion.community_id !== communityId) {
-    throw notFound('Suggestion not found');
-  }
-  return suggestion;
-}
+import { conflict } from '../utils/errors';
+import { loadInCommunity } from '../utils/loadInCommunity';
 
 export const suggestionsController = {
   async create(req: Request, res: Response): Promise<void> {
@@ -36,7 +28,7 @@ export const suggestionsController = {
 
   async upvote(req: Request, res: Response): Promise<void> {
     const { communityId, suggestionId } = req.params;
-    await loadInCommunity(suggestionId, communityId);
+    await loadInCommunity(suggestionModel, suggestionId, communityId, 'Suggestion');
 
     try {
       const updated = await withTransaction((client) =>
@@ -44,7 +36,7 @@ export const suggestionsController = {
       );
       res.json({ suggestion: updated });
     } catch (err) {
-      if ((err as { code?: string }).code === '23505') {
+      if (isUniqueViolation(err)) {
         throw conflict('You have already upvoted this suggestion');
       }
       throw err;
@@ -55,7 +47,7 @@ export const suggestionsController = {
   async moderate(req: Request, res: Response): Promise<void> {
     const { communityId, suggestionId } = req.params;
     const decision = oneOf(req.body?.decision, 'decision', ['approve', 'reject'] as const);
-    await loadInCommunity(suggestionId, communityId);
+    await loadInCommunity(suggestionModel, suggestionId, communityId, 'Suggestion');
 
     const status = decision === 'approve' ? 'approved' : 'rejected';
     const updated = await suggestionModel.setStatus(suggestionId, status);

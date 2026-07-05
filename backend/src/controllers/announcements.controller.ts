@@ -1,7 +1,8 @@
 import type { Request, Response } from 'express';
 import { announcementModel } from '../models/announcement.model';
 import { str } from '../utils/validation';
-import { badRequest, forbidden, notFound } from '../utils/errors';
+import { badRequest, forbidden } from '../utils/errors';
+import { loadInCommunity } from '../utils/loadInCommunity';
 
 /** Optional array of non-empty string URLs (announcement image links). */
 function optionalUrlList(value: unknown): string[] | undefined {
@@ -43,8 +44,12 @@ export const announcementsController = {
   /** Admin edits their OWN announcement; stamps it as edited. */
   async update(req: Request, res: Response): Promise<void> {
     const { communityId, announcementId } = req.params;
-    const existing = await announcementModel.findById(announcementId);
-    if (!existing || existing.community_id !== communityId) throw notFound('Announcement not found');
+    const existing = await loadInCommunity(
+      announcementModel,
+      announcementId,
+      communityId,
+      'Announcement',
+    );
     if (existing.author_id !== req.user!.userId) {
       throw forbidden('You can only edit announcements you created');
     }
