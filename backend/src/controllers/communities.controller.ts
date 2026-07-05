@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { withTransaction } from '../config/db';
+import { withTransaction, isUniqueViolation } from '../config/db';
 import { communityModel, toPublicCommunity } from '../models/community.model';
 import { membershipModel } from '../models/membership.model';
 import { hashSecret, verifySecret } from '../services/auth.service';
@@ -27,7 +27,7 @@ export const communitiesController = {
         return c;
       });
     } catch (err) {
-      if ((err as { code?: string }).code === '23505') throw conflict('Join code already in use');
+      if (isUniqueViolation(err)) throw conflict('Join code already in use');
       throw err;
     }
 

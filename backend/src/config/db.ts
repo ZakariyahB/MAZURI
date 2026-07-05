@@ -63,6 +63,11 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
   }
 }
 
+/** True when `err` is a Postgres unique-constraint violation (SQLSTATE 23505). */
+export function isUniqueViolation(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && (err as { code?: string }).code === '23505';
+}
+
 /** Lightweight connectivity probe for health/readiness checks. */
 export async function checkDatabaseConnection(): Promise<boolean> {
   try {

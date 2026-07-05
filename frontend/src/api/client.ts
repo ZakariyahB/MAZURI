@@ -97,6 +97,18 @@ export interface ApiClient {
   createPost(id: string, body: string): Promise<Post>;
 }
 
+/** Parses a JSON response body, throwing an ApiError (with status) on failure. */
+async function parseResponse<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  const data: unknown = text ? JSON.parse(text) : null;
+
+  if (!res.ok) {
+    const message = (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
+    throw new ApiError(res.status, message);
+  }
+  return data as T;
+}
+
 export function createApiClient(baseUrl: string): ApiClient {
   let token: string | null = null;
 
@@ -110,15 +122,7 @@ export function createApiClient(baseUrl: string): ApiClient {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
 
-    const text = await res.text();
-    const data: unknown = text ? JSON.parse(text) : null;
-
-    if (!res.ok) {
-      const message =
-        (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
-      throw new ApiError(res.status, message);
-    }
-    return data as T;
+    return parseResponse<T>(res);
   }
 
   // Multipart upload — do NOT set Content-Type; the browser adds the multipart
@@ -128,14 +132,7 @@ export function createApiClient(baseUrl: string): ApiClient {
     if (token) headers.Authorization = `Bearer ${token}`;
 
     const res = await fetch(`${baseUrl}${path}`, { method: 'POST', headers, body: form });
-    const text = await res.text();
-    const data: unknown = text ? JSON.parse(text) : null;
-    if (!res.ok) {
-      const message =
-        (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;
-      throw new ApiError(res.status, message);
-    }
-    return data as T;
+    return parseResponse<T>(res);
   }
 
   const c = (id: string) => `/api/communities/${id}`;

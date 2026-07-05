@@ -2,7 +2,8 @@ import type { Request, Response } from 'express';
 import { eventModel } from '../models/event.model';
 import { EVENT_KINDS } from '../config/constants';
 import { str, optionalStr, isoDate, intInRange, oneOf } from '../utils/validation';
-import { badRequest, notFound } from '../utils/errors';
+import { badRequest } from '../utils/errors';
+import { loadInCommunity } from '../utils/loadInCommunity';
 
 export const eventsController = {
   /**
@@ -36,8 +37,7 @@ export const eventsController = {
     const { communityId, eventId } = req.params;
     const rating = intInRange(req.body?.rating, 'rating', 1, 5);
 
-    const event = await eventModel.findById(eventId);
-    if (!event || event.community_id !== communityId) throw notFound('Event not found');
+    const event = await loadInCommunity(eventModel, eventId, communityId, 'Event');
     if (event.kind !== 'past') throw badRequest('Only past events can be rated');
 
     res.status(201).json({ rating: await eventModel.rate(eventId, req.user!.userId, rating) });
@@ -48,8 +48,7 @@ export const eventsController = {
     const { communityId, eventId } = req.params;
     const direction = oneOf(req.body?.direction, 'direction', ['up', 'down'] as const);
 
-    const event = await eventModel.findById(eventId);
-    if (!event || event.community_id !== communityId) throw notFound('Event not found');
+    const event = await loadInCommunity(eventModel, eventId, communityId, 'Event');
     if (event.kind !== 'proposed') throw badRequest('Only proposed events can be voted on');
 
     const updated = await eventModel.vote(eventId, req.user!.userId, direction === 'up' ? 1 : -1);
