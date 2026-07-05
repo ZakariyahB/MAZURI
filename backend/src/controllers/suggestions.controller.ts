@@ -59,6 +59,7 @@ export const suggestionsController = {
 
     const status = decision === 'approve' ? 'approved' : 'rejected';
     const updated = await suggestionModel.setStatus(suggestionId, status);
+    if (!updated) throw notFound('Suggestion not found');
     res.json({ suggestion: updated });
   },
 };

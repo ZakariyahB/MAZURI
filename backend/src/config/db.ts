@@ -56,7 +56,11 @@ export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>)
     await client.query('COMMIT');
     return result;
   } catch (err) {
-    await client.query('ROLLBACK');
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('ROLLBACK failed after error:', rollbackErr);
+    }
     throw err;
   } finally {
     client.release();
@@ -68,7 +72,8 @@ export async function checkDatabaseConnection(): Promise<boolean> {
   try {
     await pool.query('SELECT 1');
     return true;
-  } catch {
+  } catch (err) {
+    console.error('Database health check failed:', err);
     return false;
   }
 }

@@ -111,7 +111,13 @@ export function createApiClient(baseUrl: string): ApiClient {
     });
 
     const text = await res.text();
-    const data: unknown = text ? JSON.parse(text) : null;
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      if (!res.ok) throw new ApiError(res.status, `Request failed (${res.status})`);
+      throw new ApiError(500, 'Server returned invalid JSON');
+    }
 
     if (!res.ok) {
       const message =
@@ -129,7 +135,13 @@ export function createApiClient(baseUrl: string): ApiClient {
 
     const res = await fetch(`${baseUrl}${path}`, { method: 'POST', headers, body: form });
     const text = await res.text();
-    const data: unknown = text ? JSON.parse(text) : null;
+    let data: unknown = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      if (!res.ok) throw new ApiError(res.status, `Request failed (${res.status})`);
+      throw new ApiError(500, 'Server returned invalid JSON');
+    }
     if (!res.ok) {
       const message =
         (data as { error?: string } | null)?.error ?? `Request failed (${res.status})`;

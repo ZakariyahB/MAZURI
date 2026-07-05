@@ -32,7 +32,9 @@ export const incidentsController = {
     if (!incident || incident.community_id !== communityId) throw notFound('Incident not found');
     if (incident.status === 'resolved') throw conflict('Incident is already resolved');
 
-    res.json({ incident: await incidentModel.resolve(incidentId) });
+    const resolved = await incidentModel.resolve(incidentId);
+    if (!resolved) throw conflict('Incident was already resolved');
+    res.json({ incident: resolved });
   },
 
   /** Admin AI triage: cluster open reports by issue, ranked by urgency (Insights tier). */

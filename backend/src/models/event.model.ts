@@ -1,5 +1,6 @@
 import { query } from '../config/db';
 import type { EventStatus, EventKind } from '../config/constants';
+import { AppError } from '../utils/errors';
 
 export interface EventProposal {
   id: string;
@@ -49,7 +50,9 @@ export const eventModel = {
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
       [communityId, title, description, eventDate, status, kind],
     );
-    return (await this.findById(id))!;
+    const event = await this.findById(id);
+    if (!event) throw new AppError(500, 'Failed to read back created event');
+    return event;
   },
 
   async listByCommunity(communityId: string): Promise<EventProposal[]> {
@@ -91,6 +94,8 @@ export const eventModel = {
        ON CONFLICT (event_id, user_id) DO UPDATE SET vote = EXCLUDED.vote`,
       [eventId, userId, vote],
     );
-    return (await this.findById(eventId))!;
+    const event = await this.findById(eventId);
+    if (!event) throw new AppError(500, 'Failed to read back event after voting');
+    return event;
   },
 };
