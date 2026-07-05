@@ -22,6 +22,10 @@ yarn-error.log*
 # TypeScript incremental build info
 *.tsbuildinfo
 
+# Test coverage
+coverage/
+**/coverage/
+
 # Editor / OS
 .vscode/
 .idea/
