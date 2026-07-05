@@ -3,6 +3,7 @@ import cors from 'cors';
 
 import { env } from './config/env';
 import { corsOptions } from './config/cors';
+import { checkDatabaseConnection } from './config/db';
 import { runMigrations } from './db/migrate';
 import authRoutes from './routes/auth.routes';
 import apiRoutes from './routes';
@@ -16,9 +17,12 @@ const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check — public.
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
+// Health check — public. Probes DB connectivity so load balancers and
+// orchestrators get an honest signal.
+app.get('/health', async (_req, res) => {
+  const dbOk = await checkDatabaseConnection();
+  const status = dbOk ? 'ok' : 'degraded';
+  res.status(dbOk ? 200 : 503).json({ status, db: dbOk });
 });
 
 // Auth (signup/login public; /me guarded inside the router).
@@ -33,12 +37,8 @@ app.use(notFound);
 app.use(errorHandler);
 
 async function bootstrap(): Promise<void> {
-  try {
-    await runMigrations();
-    console.log('Database schema ready.');
-  } catch (err) {
-    console.error('Migration failed (continuing to listen):', err);
-  }
+  await runMigrations();
+  console.log('Database schema ready.');
 
   app.listen(env.port, () => {
     console.log(`Community Bridge API listening on http://localhost:${env.port}`);

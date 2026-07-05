@@ -190,7 +190,10 @@ export function CommunityPage({ api, community, onBack }: CommunityPageProps): J
   }, [api, id, isAdmin]);
 
   const refreshAnalytics = (): void => {
-    api.getAnalytics(id).then(setAnalytics).catch(() => undefined);
+    api.getAnalytics(id).then(setAnalytics).catch((err) => {
+      console.error('Failed to refresh analytics:', err);
+      setNotice((err as Error).message);
+    });
   };
 
   const closeComposer = (): void => {
