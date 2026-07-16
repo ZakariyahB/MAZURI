@@ -1,4 +1,4 @@
-# Nafr — civic feedback platform. Built by team MAZURI
+# nafr — civic feedback platform. Built by team MAZURI
 STEMM Haqqathon 
 
 # Community Bridge — Founder Brief
