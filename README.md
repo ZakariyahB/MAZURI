@@ -1,5 +1,5 @@
-# MAZURI
-STEMM Haqqathon MAZURI idea
+# Nafr — civic feedback platform. Built by team MAZURI
+STEMM Haqqathon 
 
 # Community Bridge — Founder Brief
 
